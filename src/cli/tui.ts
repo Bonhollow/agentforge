@@ -2083,7 +2083,7 @@ export async function runTui() {
 
   // Splash — display logo via iTerm2 inline image protocol
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  const logoPath = join(__dirname, "..", "..", "static", "logo.jpg");
+  const logoPath = join(__dirname, "..", "..", "static", "logo.png");
   try {
     const data = readFileSync(logoPath);
     const b64 = data.toString("base64");

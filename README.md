@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Bonhollow/agentforge/main/static/logo.jpg" alt="AgentForge" width="640">
+  <img src="https://raw.githubusercontent.com/Bonhollow/agentforge/main/static/logo.png" alt="AgentForge" width="640">
 </p>
 
 # AgentForge
