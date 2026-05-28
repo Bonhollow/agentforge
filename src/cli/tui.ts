@@ -26,6 +26,7 @@ import { syncExposed, isSyncing } from "../core/sync.js";
 import { readMCPServers, writeMCPServers, addMCPServer, removeMCPServer, renameMCPServer, mcpServersPath } from "../core/mcp.js";
 import { readModels, writeModels, addProvider, removeProvider, editProvider, pingProvider, fetchModelList, testModelStream, detectLocal, scanStorage, generateEnvFile } from "../core/models.js";
 import type { ModelProvider, ProviderType } from "../core/models.js";
+import { listBuiltinSkills, getBuiltinSkill } from "../core/builtins.js";
 import { watch } from "node:fs";
 
 const adapters: Record<string, Adapter> = {
@@ -632,11 +633,16 @@ async function tuiList() {
   if (p.isCancel(type)) return;
 
   const elements = listElements(process.cwd(), type as string | undefined);
-  if (elements.length === 0) {
+  let builtins: { name: string; type: string; description: string; version: string }[] = [];
+  if (!type || type === "skill") {
+    builtins = listBuiltinSkills().map((s) => ({ name: s.name, type: "skill", description: s.description, version: "built-in" }));
+  }
+  const all = [...elements, ...builtins];
+  if (all.length === 0) {
     consola.info("No elements found.");
     return;
   }
-  for (const el of elements) {
+  for (const el of all) {
     const colored = `${colorType(el.type).padEnd(14)} ${colorName(el.name, el.type).padEnd(28)} v${el.version.padEnd(8)} ${el.description}`;
     consola.log(colored);
   }
@@ -819,7 +825,9 @@ async function editTools(cwd: string, el: { type: string; data: Record<string, u
 
 async function editSkills(cwd: string, el: { type: string; data: Record<string, unknown>; filePath: string }): Promise<void> {
   const schema = readRegistry(cwd);
-  const availableSkills = schema.skills.map((s: { name: string }) => s.name);
+  const localSkills = schema.skills.map((s: { name: string }) => s.name);
+  const builtins = listBuiltinSkills().map((s) => s.name);
+  const availableSkills = [...new Set([...localSkills, ...builtins])];
   const current = (el.data.skills as { ref: string }[]) || [];
 
   while (true) {
@@ -845,9 +853,23 @@ async function editSkills(cwd: string, el: { type: string; data: Record<string, 
       }
       const picked = await p.select({
         message: "Add skill:",
-        options: unlinked.map((n: string) => ({ value: n, label: n })),
+        options: unlinked.map((n: string) => {
+          const isBuiltin = builtins.includes(n) && !localSkills.includes(n);
+          return { value: n, label: isBuiltin ? `${n} (built-in)` : n };
+        }),
       });
       if (p.isCancel(picked)) continue;
+      // Auto-copy built-in skill to local registry if needed
+      if (!localSkills.includes(picked as string)) {
+        const builtin = getBuiltinSkill(picked as string);
+        if (builtin) {
+          const { body: bodyContent, ...frontmatter } = builtin;
+          const filePath = addElement(cwd, "skill", builtin.name);
+          const frontmatterYaml = yaml.dump(frontmatter, { indent: 2, lineWidth: 120 }).trim();
+          writeFileSync(filePath, `---\n${frontmatterYaml}\n---\n\n${bodyContent}\n`, "utf-8");
+          consola.success(`Copied built-in skill "${builtin.name}" to local registry.`);
+        }
+      }
       current.push({ ref: picked as string });
     } else if (action.startsWith("remove:")) {
       const idx = parseInt(action.slice(7), 10);
