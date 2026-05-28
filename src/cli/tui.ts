@@ -2081,15 +2081,33 @@ async function handleAction(action: string): Promise<void> {
 export async function runTui() {
   const cwd = process.cwd();
 
-  // Splash — display logo via iTerm2 inline image protocol
+  // Splash
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const logoPath = join(__dirname, "..", "..", "static", "logo.png");
+  const termProg = process.env.TERM_PROGRAM || "";
+  const supportsImg = termProg === "iTerm.app" || termProg === "kitty" || termProg === "WezTerm";
   try {
-    const data = readFileSync(logoPath);
-    const b64 = data.toString("base64");
-    process.stdout.write(`\x1b]1337;File=inline=1;width=50%:${b64}\x07`);
-    process.stdout.write(`\n${C.cyan}AgentForge${C.reset}${C.dim}  v0.1.0${C.reset}\n\n`);
+    if (supportsImg) {
+      const data = readFileSync(logoPath);
+      const b64 = data.toString("base64");
+      process.stdout.write(`\x1b]1337;File=inline=1;width=50%:${b64}\x07`);
+    }
+    process.stdout.write(`${C.cyan}\u25a1${C.reset} ${C.bold}AgentForge${C.reset}${C.dim}  v0.1.0${C.reset}`);
   } catch {}
+  process.stdout.write(`\n${C.dim}Press any key to enter TUI...${C.reset}`);
+  const stdin = process.stdin;
+  const origMode = stdin.isTTY ? stdin.isRaw : false;
+  if (stdin.isTTY) stdin.setRawMode(true);
+  stdin.resume();
+  await new Promise<void>((resolve) => {
+    const handler = (buf: Buffer) => {
+      stdin.removeListener("data", handler);
+      if (stdin.isTTY) stdin.setRawMode(origMode || false);
+      stdin.pause();
+      resolve();
+    };
+    stdin.on("data", handler);
+  });
 
   // Auto-init registry on first use
   const isNew = !existsSync(getRegistryDir(cwd));
