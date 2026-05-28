@@ -106,11 +106,19 @@ async function tuiInfo() {
 async function tuiConfig() {
   const cwd = process.cwd();
   const cfg = loadConfig(cwd);
+  const regDir = getRegistryDir(cwd);
+
+  function readActiveAgent(): string {
+    const activePath = join(regDir, ".active-agent");
+    if (existsSync(activePath)) return readFileSync(activePath, "utf-8").trim();
+    return "(none)";
+  }
 
   while (true) {
     const field = await p.select({
       message: "Project config",
       options: [
+        { value: "active_agent", label: "Default agent", hint: readActiveAgent() },
         { value: "platforms", label: "Export targets", hint: (cfg.platforms || ["all"]).join(", ") },
         { value: "vars", label: "Variables", hint: `${Object.keys(cfg.vars || {}).length} defined` },
         { value: "__done", label: "Done" },
@@ -118,7 +126,13 @@ async function tuiConfig() {
     });
     if (p.isCancel(field) || field === "__done") break;
 
-    if (field === "platforms") {
+    if (field === "active_agent") {
+      const name = await pickElement(process.cwd(), "agent");
+      if (!name) continue;
+      const activePath = join(regDir, ".active-agent");
+      writeFileSync(activePath, (name as string) + "\n", "utf-8");
+      consola.success(`Default agent set to "${name}".`);
+    } else if (field === "platforms") {
       const picked = await p.multiselect({
         message: "Export to which platforms?",
         options: [

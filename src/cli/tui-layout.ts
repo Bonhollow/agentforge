@@ -47,7 +47,6 @@ const CATEGORIES: Record<string, Category> = {
     label: "Agents", shortcut: "e",
     description: "Create, edit, and manage AI agents with system prompts, linked skills, MCP tools, and per-platform overrides.",
     items: [
-      { value: "use", label: "Active agent", shortcut: "", help: "Select an agent as the default for this project." },
       { value: "list", label: "List", shortcut: "l", help: "List all agents in the local registry." },
       { value: "add", label: "Add", shortcut: "a", help: "Create a new agent (YAML) from a template." },
       { value: "fork", label: "Fork", shortcut: "f", help: "Copy an agent with a new name." },
