@@ -1,0 +1,93 @@
+{
+  "version": "1",
+  "targets": {
+    "claude_code": {
+      "agent:Test": {
+        "hash": "c92dc0b7fd67e15d"
+      },
+      "agent:demo-cli-test": {
+        "hash": "87ec4903bf9235a4"
+      },
+      "agent:PR": {
+        "hash": "022178757a715764"
+      },
+      "agent:Test 2": {
+        "hash": "d9422e4270050b09"
+      },
+      "skill:Test": {
+        "hash": "ac4ebd0afda2dafd"
+      },
+      "agent:PR Agent 2.0": {
+        "hash": "6a3abb1b472bab8d"
+      },
+      "prompt:Test": {
+        "hash": "810579dec4829873"
+      }
+    },
+    "opencode": {
+      "agent:Test": {
+        "hash": "c92dc0b7fd67e15d"
+      },
+      "agent:demo-cli-test": {
+        "hash": "87ec4903bf9235a4"
+      },
+      "agent:PR": {
+        "hash": "022178757a715764"
+      },
+      "agent:Test 2": {
+        "hash": "d9422e4270050b09"
+      },
+      "skill:Test": {
+        "hash": "ac4ebd0afda2dafd"
+      },
+      "agent:PR Agent 2.0": {
+        "hash": "6a3abb1b472bab8d"
+      },
+      "prompt:Test": {
+        "hash": "810579dec4829873"
+      }
+    },
+    "cursor": {
+      "agent:Test": {
+        "hash": "c92dc0b7fd67e15d"
+      },
+      "agent:demo-cli-test": {
+        "hash": "87ec4903bf9235a4"
+      },
+      "agent:PR": {
+        "hash": "022178757a715764"
+      },
+      "agent:Test 2": {
+        "hash": "d9422e4270050b09"
+      },
+      "skill:Test": {
+        "hash": "ac4ebd0afda2dafd"
+      },
+      "agent:PR Agent 2.0": {
+        "hash": "6a3abb1b472bab8d"
+      },
+      "prompt:Test": {
+        "hash": "810579dec4829873"
+      }
+    },
+    "codex": {
+      "skill:Test": {
+        "hash": "ac4ebd0afda2dafd"
+      },
+      "agent:PR Agent 2.0": {
+        "hash": "6a3abb1b472bab8d"
+      },
+      "prompt:Test": {
+        "hash": "810579dec4829873"
+      }
+    },
+    "windsurf": {
+      "skill:Test": {
+        "hash": "ac4ebd0afda2dafd"
+      },
+      "prompt:Test": {
+        "hash": "810579dec4829873"
+      }
+    }
+  }
+}

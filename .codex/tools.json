@@ -1,0 +1,11 @@
+[
+  {
+    "type": "mcp",
+    "name": "chrome-devtools",
+    "command": "npx",
+    "args": [
+      "-y",
+      "chrome-devtools-mcp@latest"
+    ]
+  }
+]

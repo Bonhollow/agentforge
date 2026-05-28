@@ -1,0 +1,6 @@
+{
+  "hooks": {
+    "pre-request": [],
+    "post-request": []
+  }
+}

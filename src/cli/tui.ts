@@ -5,8 +5,7 @@ import { initRegistry, listElements, readElement, removeElement, addElement, rea
 import { getRegistryDir } from "../core/registry.js";
 import { validateElement } from "../core/validate.js";
 import { diffSchemas, formatDiff } from "../core/diff.js";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import yaml from "js-yaml";
 import { claudeCodeAdapter } from "../adapters/claude-code.js";
 import { codexAdapter } from "../adapters/codex.js";
@@ -2080,15 +2079,6 @@ async function handleAction(action: string): Promise<void> {
 
 export async function runTui() {
   const cwd = process.cwd();
-
-  // Splash screen
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  const splashPath = join(__dirname, "..", "..", "static", "splash.txt");
-  if (existsSync(splashPath)) {
-    const splash = readFileSync(splashPath, "utf-8");
-    process.stdout.write(C.cyan + splash + C.reset);
-    process.stdout.write(`${C.dim}${"v0.1.0".padStart(38)}${C.reset}\n\n`);
-  }
 
   // Auto-init registry on first use
   const isNew = !existsSync(getRegistryDir(cwd));

@@ -1,0 +1,42 @@
+name: "AgentForge Export"
+description: "Export .agentforge registry to platform-native configs"
+author: "agentforge"
+
+inputs:
+  target:
+    description: "Export target (all, opencode, codex, claude_code, cursor, windsurf)"
+    required: false
+    default: "all"
+  supabase_url:
+    description: "Supabase project URL for sync"
+    required: false
+  supabase_anon_key:
+    description: "Supabase anon key for sync"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Install agentforge
+      run: npm install -g agentforge
+      shell: bash
+
+    - name: Configure Supabase
+      if: inputs.supabase_url != '' && inputs.supabase_anon_key != ''
+      run: |
+        echo "AF_SUPABASE_URL=${{ inputs.supabase_url }}" >> $GITHUB_ENV
+        echo "AF_SUPABASE_ANON_KEY=${{ inputs.supabase_anon_key }}" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Export registry
+      run: af export --target ${{ inputs.target }}
+      shell: bash
+
+branding:
+  icon: "upload-cloud"
+  color: "blue"

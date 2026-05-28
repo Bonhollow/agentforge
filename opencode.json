@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ]
+    }
+  },
+  "agent": {
+    "PR Agent 2.0": {
+      "description": "PR Agent 2.0 agent",
+      "mode": "primary",
+      "prompt": "Review all commited changes in this branch, expose in order all the bugs from critical to lower"
+    }
+  },
+  "mcp": {
+    "chrome-devtools": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ]
+    }
+  }
+}
