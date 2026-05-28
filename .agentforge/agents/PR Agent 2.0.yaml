@@ -15,4 +15,5 @@ expose:
   - opencode
   - cursor
 skills:
+  - ref: AgentForge
   - ref: Test
