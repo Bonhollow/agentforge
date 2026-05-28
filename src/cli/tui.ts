@@ -616,12 +616,12 @@ async function tuiModelsStorage() {
   consola.success(`Regenerated .agentforge/models.env`);
 }
 
-async function tuiList() {
+async function tuiList(presolveType?: string) {
   if (!hasRegistry()) {
     consola.error("No registry found. Run `af init` first.");
     return;
   }
-  const type = await p.select({
+  const type = presolveType ?? await p.select({
     message: "Filter by type:",
     options: [
       { value: undefined, label: "All" },
@@ -2039,7 +2039,7 @@ async function tuiBulk() {
   syncExposed(cwd, true);
 }
 
-async function handleAction(action: string): Promise<void> {
+async function handleAction(action: string, catIdx?: number): Promise<void> {
   if (action.startsWith("show:")) {
     const name = action.slice(5);
     const el = readElement(process.cwd(), name);
@@ -2049,13 +2049,16 @@ async function handleAction(action: string): Promise<void> {
     if (el.body) { consola.log("--- Body ---"); consola.log(el.body); }
     return;
   }
+  // Infer element type from category index
+  const catType = catIdx !== undefined ? (["agent", undefined, "skill", "prompt"] as const)[catIdx] : undefined;
+  const effectiveType = catType === undefined ? undefined : catType;
   switch (action) {
     case "info": await tuiInfo(); break;
     case "config": await tuiConfig(); break;
     case "add": await tuiAdd(); break;
     case "add_skill": await tuiAddSkill(); break;
     case "add_prompt": await tuiAddPrompt(); break;
-    case "list": await tuiList(); break;
+    case "list": await tuiList(effectiveType); break;
     case "show": await tuiShow(); break;
     case "edit": await tuiEdit(); break;
     case "remove": await tuiRemove(); break;
@@ -2160,8 +2163,7 @@ export async function runTui() {
     if (result.action === null) break;
     lastView = result.view;
     catIdx = result.catIdx;
-
-    await handleAction(result.action);
+    await handleAction(result.action, catIdx);
 
     const { text } = await import("@clack/prompts");
     const cont = await text({
