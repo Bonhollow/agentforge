@@ -5,8 +5,7 @@ import { initRegistry, listElements, readElement, removeElement, addElement, rea
 import { getRegistryDir } from "../core/registry.js";
 import { validateElement } from "../core/validate.js";
 import { diffSchemas, formatDiff } from "../core/diff.js";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import yaml from "js-yaml";
 import { claudeCodeAdapter } from "../adapters/claude-code.js";
 import { codexAdapter } from "../adapters/codex.js";
@@ -2081,33 +2080,7 @@ async function handleAction(action: string): Promise<void> {
 export async function runTui() {
   const cwd = process.cwd();
 
-  // Splash
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  const logoPath = join(__dirname, "..", "..", "static", "logo.png");
-  const termProg = process.env.TERM_PROGRAM || "";
-  const supportsImg = termProg === "iTerm.app" || termProg === "kitty" || termProg === "WezTerm";
-  try {
-    if (supportsImg) {
-      const data = readFileSync(logoPath);
-      const b64 = data.toString("base64");
-      process.stdout.write(`\x1b]1337;File=inline=1;width=50%:${b64}\x07`);
-    }
-    process.stdout.write(`${C.cyan}\u25a1${C.reset} ${C.bold}AgentForge${C.reset}${C.dim}  v0.1.0${C.reset}`);
-  } catch {}
-  process.stdout.write(`\n${C.dim}Press any key to enter TUI...${C.reset}`);
-  const stdin = process.stdin;
-  const origMode = stdin.isTTY ? stdin.isRaw : false;
-  if (stdin.isTTY) stdin.setRawMode(true);
-  stdin.resume();
-  await new Promise<void>((resolve) => {
-    const handler = (buf: Buffer) => {
-      stdin.removeListener("data", handler);
-      if (stdin.isTTY) stdin.setRawMode(origMode || false);
-      stdin.pause();
-      resolve();
-    };
-    stdin.on("data", handler);
-  });
+  // Auto-init registry on first use
 
   // Auto-init registry on first use
   const isNew = !existsSync(getRegistryDir(cwd));
