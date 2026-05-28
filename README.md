@@ -1,10 +1,6 @@
-```
-     _    ____ _ _   _ _____ ___   ___  ___
-    / \  / ___(_) |_| |  ___/ _ \ / _ \/ __|
-   / _ \| |  _| | __| | |_ | | | | |_) \__ \
-  / ___ \ |_| | | |_| |  _|| |_| |  __/|__/ |
- /_/   \_\____|_|\__/|_|   \___/ \___||___/
-```
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Bonhollow/agentforge/main/static/logo.jpg" alt="AgentForge" width="640">
+</p>
 
 # AgentForge
 

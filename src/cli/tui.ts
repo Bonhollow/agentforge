@@ -5,7 +5,8 @@ import { initRegistry, listElements, readElement, removeElement, addElement, rea
 import { getRegistryDir } from "../core/registry.js";
 import { validateElement } from "../core/validate.js";
 import { diffSchemas, formatDiff } from "../core/diff.js";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 import { claudeCodeAdapter } from "../adapters/claude-code.js";
 import { codexAdapter } from "../adapters/codex.js";
@@ -2079,6 +2080,16 @@ async function handleAction(action: string): Promise<void> {
 
 export async function runTui() {
   const cwd = process.cwd();
+
+  // Splash — display logo via iTerm2 inline image protocol
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const logoPath = join(__dirname, "..", "..", "static", "logo.jpg");
+  try {
+    const data = readFileSync(logoPath);
+    const b64 = data.toString("base64");
+    process.stdout.write(`\x1b]1337;File=inline=1;width=50%:${b64}\x07`);
+    process.stdout.write(`\n${C.cyan}AgentForge${C.reset}${C.dim}  v0.1.0${C.reset}\n\n`);
+  } catch {}
 
   // Auto-init registry on first use
   const isNew = !existsSync(getRegistryDir(cwd));
