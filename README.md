@@ -152,18 +152,25 @@ Register and manage local and cloud model providers:
 
 ## Quick Start
 
+### Install via Homebrew
+
 ```bash
-# Install
+brew tap Bonhollow/agentforge https://github.com/Bonhollow/agentforge
+brew install agentforge
+```
+
+### Install via npm
+
+```bash
 npm install -g agentforge
+```
 
-# Initialize a new project
-af init
+### Get started
 
-# Launch the TUI
-af
-
-# Or use CLI directly
-af list
+```bash
+af init       # Initialize a new project
+af            # Launch the TUI
+af list       # Or use CLI directly
 af add agent my-agent --template senior-dev
 af export claude_code
 ```
