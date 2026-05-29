@@ -2,7 +2,7 @@ class Agentforge < Formula
   desc "Universal CLI to manage, sync and export AI agents across coding platforms"
   homepage "https://github.com/Bonhollow/agentforge"
   url "https://github.com/Bonhollow/agentforge/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "e2c7e118b590fd7f43c18a5b173c31ee87fb1e053699c1c412eb6c7109a66d3b"
+  sha256 "3cf1e900a1ef33a1686e72395892d686018a80c361a6493eddaf8ceae7a1fa52"
   license "MIT"
 
   depends_on "node"
