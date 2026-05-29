@@ -1,5 +1,5 @@
 {
-  "name": "agentforge",
+  "name": "@bonhollow/agentforge",
   "version": "0.1.0",
   "description": "Universal CLI to manage, sync and export AI agents, prompts and skills across every coding platform",
   "type": "module",

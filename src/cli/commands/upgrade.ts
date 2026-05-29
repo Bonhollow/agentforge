@@ -14,7 +14,7 @@ export default defineCommand({
     consola.info("Checking for updates...");
 
     try {
-      const res = await fetch("https://registry.npmjs.org/agentforge/latest");
+      const res = await fetch("https://registry.npmjs.org/@bonhollow/agentforge/latest");
       if (!res.ok) {
         consola.error("Could not reach npm registry.");
         return;
@@ -40,7 +40,7 @@ export default defineCommand({
       }
 
       consola.info(`Upgrading ${current} -> ${latest}...`);
-      execSync("npm install -g agentforge", { stdio: "inherit" });
+      execSync("npm install -g @bonhollow/agentforge", { stdio: "inherit" });
       consola.success(`Upgraded to ${latest}.`);
     } catch (err) {
       consola.error(`Upgrade failed: ${err instanceof Error ? err.message : String(err)}`);

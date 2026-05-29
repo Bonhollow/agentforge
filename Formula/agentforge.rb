@@ -1,19 +1,17 @@
 class Agentforge < Formula
   desc "Universal CLI to manage, sync and export AI agents across coding platforms"
   homepage "https://github.com/Bonhollow/agentforge"
-  url "https://github.com/Bonhollow/agentforge/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "3cf1e900a1ef33a1686e72395892d686018a80c361a6493eddaf8ceae7a1fa52"
+  url "https://registry.npmjs.org/@bonhollow/agentforge/-/bonhollow-agentforge-0.1.0.tgz"
+  sha256 "c8d3eae160a892e32837db3dcae515e843e5383fef52b8141940c8bcf8b6d59f"
   license "MIT"
 
   depends_on "node"
 
   def install
-    # Exclude node_modules (platform-specific) and hidden dotfiles (not in tarball)
-    libexec.install Dir["*"] - Dir["node_modules"]
+    libexec.install Dir["*"]
     cd libexec do
       system "npm", "install", "--production", "--ignore-scripts",
              "--no-audit", "--no-fund", "--no-package-lock"
-      system "npm", "run", "build"
     end
     (bin/"af").write <<~EOS
       #!/bin/sh
