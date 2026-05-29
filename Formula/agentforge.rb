@@ -1,8 +1,8 @@
 class Agentforge < Formula
   desc "Universal CLI to manage, sync and export AI agents across coding platforms"
   homepage "https://github.com/Bonhollow/agentforge"
-  url "https://registry.npmjs.org/@bonhollow/agentforge/-/bonhollow-agentforge-0.1.0.tgz"
-  sha256 "c8d3eae160a892e32837db3dcae515e843e5383fef52b8141940c8bcf8b6d59f"
+  url "https://registry.npmjs.org/@bonhollow/agentforge/-/agentforge-0.1.1.tgz"
+  sha256 "a5bb6bc9d4258bf4a98272e2bdcbeb981ff233ada0261f5c2ff0c2fd136f8cbb"
   license "MIT"
 
   depends_on "node"
@@ -20,6 +20,6 @@ class Agentforge < Formula
   end
 
   test do
-    assert_match "0.1.0", shell_output("#{bin}/af version 2>&1")
+    assert_match "0.1.1", shell_output("#{bin}/af version 2>&1")
   end
 end
