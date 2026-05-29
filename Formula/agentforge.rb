@@ -8,9 +8,11 @@ class Agentforge < Formula
   depends_on "node"
 
   def install
-    libexec.install Dir["*"]
+    # Exclude node_modules (platform-specific) and hidden dotfiles (not in tarball)
+    libexec.install Dir["*"] - Dir["node_modules"]
     cd libexec do
-      system "npm", "install", "--production", "--ignore-scripts"
+      system "npm", "install", "--production", "--ignore-scripts",
+             "--no-audit", "--no-fund", "--no-package-lock"
       system "npm", "run", "build"
     end
     (bin/"af").write <<~EOS
