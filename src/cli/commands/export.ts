@@ -9,6 +9,8 @@ import { codexAdapter } from "../../adapters/codex.js";
 import { opencodeAdapter } from "../../adapters/opencode.js";
 import { cursorAdapter } from "../../adapters/cursor.js";
 import { windsurfAdapter } from "../../adapters/windsurf.js";
+import { continueAdapter } from "../../adapters/continue.js";
+import { piMonoAdapter } from "../../adapters/pi-mono.js";
 import { loadVars, resolveSchemaVars } from "../../core/vars.js";
 import { readLock, writeLock, getChangedElements, updateLock } from "../../core/lock.js";
 import { runHook } from "../../core/hooks.js";
@@ -27,6 +29,8 @@ const adapters: Record<string, Adapter> = {
   opencode: opencodeAdapter,
   cursor: cursorAdapter,
   windsurf: windsurfAdapter,
+  continue_dev: continueAdapter,
+  pi_mono: piMonoAdapter,
 };
 
 import type { Adapter } from "../../adapters/base.js";
@@ -157,7 +161,7 @@ export default defineCommand({
   args: {
     target: {
       type: "positional",
-      description: "Target platform: claude_code, codex, opencode, cursor, windsurf, or all (default: all)",
+      description: "Target platform: claude_code, codex, opencode, cursor, windsurf, continue_dev, pi_mono, or all (default: all)",
       default: "all",
     },
     "dry-run": {

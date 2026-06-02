@@ -84,7 +84,7 @@ async function tuiInfo() {
   consola.log(`  Prompts: ${elements.filter(e => e.type === "prompt").length}`);
 
   consola.log(`\n ${C.bold}Platforms${C.reset}`);
-  const platforms = cfg.platforms ?? ["claude_code", "codex", "opencode", "cursor", "windsurf"];
+  const platforms = cfg.platforms ?? ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"];
   for (const p of platforms) consola.log(`  ${C.green}\u2713${C.reset} ${p}`);
 
   consola.log(`\n ${C.bold}Active agent${C.reset}`);
@@ -141,6 +141,8 @@ async function tuiConfig() {
           { value: "opencode", label: "OpenCode" },
           { value: "cursor", label: "Cursor" },
           { value: "windsurf", label: "Windsurf" },
+          { value: "continue_dev", label: "Continue.dev" },
+          { value: "pi_mono", label: "Pi Mono" },
         ],
         required: false,
       });

@@ -126,7 +126,7 @@ function validateYaml(uri: string, text: string): Diagnostic[] {
       }
 
       const expose = data?.expose as string[] | undefined;
-      const validTargets = ["claude_code", "codex", "opencode", "cursor", "windsurf"];
+      const validTargets = ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"];
       if (expose) {
         for (let i = 0; i < expose.length; i++) {
           if (!validTargets.includes(expose[i])) {
@@ -199,7 +199,7 @@ connection.onCompletion(async (params) => {
   const exposeMatch = lineBefore.match(/^\s*-\s*(\S*)$/);
   const prevLine = text.slice(Math.max(0, text.lastIndexOf("\n", lineStart - 2)), lineStart).trim();
   if (exposeMatch && prevLine === "expose:") {
-    const validTargets = ["claude_code", "codex", "opencode", "cursor", "windsurf"];
+    const validTargets = ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"];
     const prefix = exposeMatch[1].toLowerCase();
     return {
       isIncomplete: false,

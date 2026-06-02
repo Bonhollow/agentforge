@@ -223,7 +223,7 @@ function readDirToSchema(regDir: string): UniversalSchema {
               system_prompt: data.system_prompt as string,
               skills: (data.skills as Array<{ ref: string }>) || [],
               tools: (data.tools as Array<string | { type: string; name: string; url: string }>) || [],
-              expose: (data.expose as ExposeTarget[]) || ["claude_code", "codex", "opencode", "cursor", "windsurf"],
+              expose: (data.expose as ExposeTarget[]) || ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"],
               overrides: data.overrides as Record<string, { system_prompt?: string; skills?: Array<{ ref: string }>; tools?: Array<string | { type: string; name: string; url: string }>; expose?: ExposeTarget[] }> | undefined,
             });
           }

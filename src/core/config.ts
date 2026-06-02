@@ -20,7 +20,7 @@ export interface AgentForgeConfig {
   model_versions?: Record<string, string>;
 }
 
-const defaultPlatforms = ["claude_code", "codex", "opencode", "cursor", "windsurf"];
+const defaultPlatforms = ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"];
 
 export function saveConfig(cwd: string, cfg: AgentForgeConfig): void {
   const configPath = join(cwd, ".agentforge", "config.yaml");

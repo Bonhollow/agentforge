@@ -42,7 +42,7 @@ export function syncExposed(cwd: string, quiet?: boolean): void {
   }
   try {
     const cfg = loadConfig(cwd);
-    const targets = cfg.platforms ?? ["claude_code", "codex", "opencode", "cursor", "windsurf"];
+    const targets = cfg.platforms ?? ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"];
 
     const rawSchema = readRegistry(cwd);
     const vars = loadVars(cwd);
