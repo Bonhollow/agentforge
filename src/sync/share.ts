@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { UniversalSchema } from "../core/schema.js";
+import { UniversalSchema } from "../core/schema.js";
 
 const SUPABASE_URL = process.env.AF_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.AF_SUPABASE_ANON_KEY || "";
@@ -50,7 +50,12 @@ export async function pullSharedElements(owner: string): Promise<UniversalSchema
     else if (el.type === "prompt") prompts.push(item);
   }
 
-  return { agents, skills, prompts };
+  const result: UniversalSchema = { agents, skills, prompts };
+  const parsed = UniversalSchema.safeParse(result);
+  if (!parsed.success) {
+    throw new Error(`Invalid shared data from "${owner}": ${parsed.error.message}`);
+  }
+  return parsed.data;
 }
 
 export function detectOwner(): string | null {

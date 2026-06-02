@@ -10,10 +10,13 @@ import { codexAdapter } from "../adapters/codex.js";
 import { opencodeAdapter } from "../adapters/opencode.js";
 import { cursorAdapter } from "../adapters/cursor.js";
 import { windsurfAdapter } from "../adapters/windsurf.js";
+import { continueAdapter } from "../adapters/continue.js";
+import { piMonoAdapter } from "../adapters/pi-mono.js";
 import { consola } from "../utils/logger.js";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Adapter } from "../adapters/base.js";
+import { DEFAULT_EXPOSE } from "./platforms.js";
 
 const adapters: Record<string, Adapter> = {
   claude_code: claudeCodeAdapter,
@@ -21,6 +24,8 @@ const adapters: Record<string, Adapter> = {
   opencode: opencodeAdapter,
   cursor: cursorAdapter,
   windsurf: windsurfAdapter,
+  continue_dev: continueAdapter,
+  pi_mono: piMonoAdapter,
 };
 
 let syncing = false;
@@ -42,7 +47,7 @@ export function syncExposed(cwd: string, quiet?: boolean): void {
   }
   try {
     const cfg = loadConfig(cwd);
-    const targets = cfg.platforms ?? ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"];
+    const targets = cfg.platforms ?? DEFAULT_EXPOSE;
 
     const rawSchema = readRegistry(cwd);
     const vars = loadVars(cwd);

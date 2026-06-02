@@ -16,6 +16,7 @@ import { readLock, writeLock, getChangedElements, updateLock } from "../../core/
 import { runHook } from "../../core/hooks.js";
 import { loadConfig, resolvePlatforms } from "../../core/config.js";
 import { checkTokenBudget } from "../../core/tokens.js";
+import { SupportedTargets, PLATFORM_LIMITS } from "../../core/platforms.js";
 import { createSnapshot } from "../../core/snapshot.js";
 import { resolveSchemaForPlatform } from "../../core/overrides.js";
 import { readMCPServers } from "../../core/mcp.js";
@@ -161,7 +162,7 @@ export default defineCommand({
   args: {
     target: {
       type: "positional",
-      description: "Target platform: claude_code, codex, opencode, cursor, windsurf, continue_dev, pi_mono, or all (default: all)",
+      description: `Target platform: ${SupportedTargets.join(", ")}, or all (default: all)`,
       default: "all",
     },
     "dry-run": {

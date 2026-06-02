@@ -87,7 +87,7 @@ export async function pingProvider(baseUrl: string): Promise<boolean> {
   try {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), 2000);
-    const res = await fetch(baseUrl, { method: "HEAD", signal: ac.signal });
+    const res = await fetch(baseUrl, { method: "GET", signal: ac.signal });
     clearTimeout(t);
     return res.ok;
   } catch {

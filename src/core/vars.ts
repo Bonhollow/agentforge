@@ -43,7 +43,7 @@ export function loadVars(cwd: string): Record<string, string> {
 }
 
 export function resolveVars(input: string, vars: Record<string, string>): string {
-  return input.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+  return input.replace(/\{\{([\w.-]+)\}\}/g, (_, key) => {
     if (key in vars) return vars[key];
     return `{{${key}}}`;
   });

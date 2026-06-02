@@ -96,7 +96,8 @@ export function updateLock(
     lock.targets[target] = {};
   }
 
-  const entries = lock.targets[target];
+  // Reset target entries to purge orphans from deleted elements
+  const entries: Record<string, LockEntry> = lock.targets[target] = {};
 
   for (const agent of schema.agents) {
     entries[`agent:${agent.name}`] = { hash: computeHash(agent) };

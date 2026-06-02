@@ -1,6 +1,7 @@
 import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
+import { DEFAULT_EXPOSE } from "./platforms.js";
 
 export interface LintConfig {
   max_tokens?: number;
@@ -20,7 +21,7 @@ export interface AgentForgeConfig {
   model_versions?: Record<string, string>;
 }
 
-const defaultPlatforms = ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"];
+const defaultPlatforms = DEFAULT_EXPOSE;
 
 export function saveConfig(cwd: string, cfg: AgentForgeConfig): void {
   const configPath = join(cwd, ".agentforge", "config.yaml");

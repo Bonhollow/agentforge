@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { consola } from "../utils/logger.js";
-import type { UniversalSchema } from "../core/schema.js";
+import { UniversalSchema } from "../core/schema.js";
 import type { SyncBackend } from "./backend.js";
 
 const SUPABASE_URL = process.env.AF_SUPABASE_URL || "";
@@ -57,8 +57,18 @@ export class SupabaseBackend implements SyncBackend {
       registryId = newReg.id;
     }
 
+    // Save existing elements so we can restore on failure
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from("elements") as any).delete().eq("registry_id", registryId);
+    const { data: oldElements } = await (supabase.from("elements") as any)
+      .select("*")
+      .eq("registry_id", registryId);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: deleteError } = await (supabase.from("elements") as any).delete().eq("registry_id", registryId);
+    if (deleteError) {
+      consola.error(`Failed to clear old elements: ${deleteError.message}`);
+      return;
+    }
 
     const elements: Array<{ registry_id: string; type: string; name: string; version: string; content: unknown; raw: string }> = [];
     for (const agent of schema.agents) {
@@ -76,6 +86,11 @@ export class SupabaseBackend implements SyncBackend {
       const { error: insertError } = await (supabase.from("elements") as any).insert(elements);
       if (insertError) {
         consola.error(`Failed to push elements: ${insertError.message}`);
+        // Restore old elements to avoid leaving the remote registry empty
+        if (oldElements?.length) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase.from("elements") as any).insert(oldElements);
+        }
         return;
       }
     }
@@ -110,10 +125,18 @@ export class SupabaseBackend implements SyncBackend {
       return { agents: [], skills: [], prompts: [] };
     }
 
-    return {
+    const result: UniversalSchema = {
       agents: elements.filter((e: { type: string }) => e.type === "agent").map((e: { content: UniversalSchema["agents"][number] }) => e.content),
       skills: elements.filter((e: { type: string }) => e.type === "skill").map((e: { content: UniversalSchema["skills"][number] }) => e.content),
       prompts: elements.filter((e: { type: string }) => e.type === "prompt").map((e: { content: UniversalSchema["prompts"][number] }) => e.content),
     };
+
+    const parsed = UniversalSchema.safeParse(result);
+    if (!parsed.success) {
+      consola.error(`Remote data validation failed: ${parsed.error.message}`);
+      return { agents: [], skills: [], prompts: [] };
+    }
+
+    return parsed.data;
   }
 }

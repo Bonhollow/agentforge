@@ -18,7 +18,7 @@ export const piMonoAdapter: Adapter = {
   target: "pi_mono",
 
   detect(cwd: string): boolean {
-    return existsSync(join(cwd, ".pi")) || existsSync(join(cwd, "AGENTS.md")) || existsSync(join(cwd, "SYSTEM.md"));
+    return existsSync(join(cwd, ".pi")) || existsSync(join(cwd, "SYSTEM.md"));
   },
 
   read(cwd: string): UniversalSchema {
@@ -127,6 +127,9 @@ export const piMonoAdapter: Adapter = {
       const primaryAgent = schema.agents[0];
       writeFileSync(join(cwd, "AGENTS.md"), primaryAgent.system_prompt, "utf-8");
       consola.success("Wrote AGENTS.md");
+      if (schema.agents.length > 1) {
+        consola.warn(`Pi Mono only supports a single agent. Dropped ${schema.agents.length - 1} additional agent(s).`);
+      }
     }
 
     // Write skills to .pi/skills/

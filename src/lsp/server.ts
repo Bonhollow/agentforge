@@ -17,6 +17,7 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname, extname, basename } from "node:path";
 import yaml from "js-yaml";
 import matter from "gray-matter";
+import { SupportedTargets } from "../core/platforms.js";
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
@@ -126,7 +127,7 @@ function validateYaml(uri: string, text: string): Diagnostic[] {
       }
 
       const expose = data?.expose as string[] | undefined;
-      const validTargets = ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"];
+      const validTargets = SupportedTargets as readonly string[];
       if (expose) {
         for (let i = 0; i < expose.length; i++) {
           if (!validTargets.includes(expose[i])) {
@@ -199,7 +200,7 @@ connection.onCompletion(async (params) => {
   const exposeMatch = lineBefore.match(/^\s*-\s*(\S*)$/);
   const prevLine = text.slice(Math.max(0, text.lastIndexOf("\n", lineStart - 2)), lineStart).trim();
   if (exposeMatch && prevLine === "expose:") {
-    const validTargets = ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"];
+    const validTargets = SupportedTargets as readonly string[];
     const prefix = exposeMatch[1].toLowerCase();
     return {
       isIncomplete: false,

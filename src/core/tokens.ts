@@ -1,12 +1,7 @@
 import type { UniversalSchema } from "./schema.js";
+import { PLATFORM_LIMITS } from "./platforms.js";
 
-const PLATFORM_LIMITS: Record<string, number> = {
-  claude_code: 200_000,
-  codex: 128_000,
-  opencode: 128_000,
-  cursor: 128_000,
-  windsurf: 128_000,
-};
+export { PLATFORM_LIMITS };
 
 const WARN_THRESHOLDS = [
   { level: "warn", pct: 0.5, label: "50%" },
@@ -14,7 +9,7 @@ const WARN_THRESHOLDS = [
   { level: "error", pct: 0.9, label: "90%" },
 ] as const;
 
-const CHARS_PER_TOKEN = 4;
+const CHARS_PER_TOKEN = 2;
 
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / CHARS_PER_TOKEN);
@@ -33,6 +28,14 @@ export function compiledPrompt(
     const skill = schema.skills.find((s) => s.name === sr.ref);
     if (skill?.body) {
       parts.push(`\n--- ${skill.name} ---\n${skill.body}`);
+    }
+  }
+
+  for (const pref of agent.prompts || []) {
+    const promptName = typeof pref === "string" ? pref : (pref as { ref: string }).ref;
+    const prompt = schema.prompts.find((p) => p.name === promptName);
+    if (prompt?.body) {
+      parts.push(`\n--- ${prompt.name} ---\n${prompt.body}`);
     }
   }
 

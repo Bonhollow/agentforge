@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import type { Adapter } from "./base.js";
 import type { UniversalSchema } from "../core/schema.js";
 import { consola } from "../utils/logger.js";
@@ -56,7 +55,6 @@ export const continueAdapter: Adapter = {
   },
 
   write(schema: UniversalSchema, cwd: string): void {
-    const globalRulesDir = join(homedir(), ".continue", "rules");
     const projectRulesDir = join(cwd, ".continue", "rules");
 
     // Write agent system prompt as .continue/rules/rules.md
@@ -86,7 +84,7 @@ export const continueAdapter: Adapter = {
 
     // Clean stale rule files
     if (existsSync(projectRulesDir)) {
-      const skillNames = new Set(schema.skills.map(s => s.name));
+      const skillNames = new Set([...schema.skills.map(s => s.name), "rules"]);
       for (const file of readdirSync(projectRulesDir)) {
         if (!file.endsWith(".md") && !file.endsWith(".mdc")) continue;
         const name = file.replace(/\.(md|mdc)$/, "");
@@ -123,12 +121,16 @@ export const continueAdapter: Adapter = {
     }
 
     if (Object.keys(mcpServers).length > 0) {
-      const mcpDir = join(cwd, ".continue", "mcpServers");
-      mkdirSync(mcpDir, { recursive: true });
-      for (const [name, config] of Object.entries(mcpServers)) {
-        writeFileSync(join(mcpDir, `${name}.json`), JSON.stringify(config, null, 2), "utf-8");
-        consola.success(`Wrote .continue/mcpServers/${name}.json`);
+      const configPath = join(cwd, ".continue", "config.json");
+      let config: Record<string, unknown> = {};
+      if (existsSync(configPath)) {
+        try {
+          config = JSON.parse(readFileSync(configPath, "utf-8"));
+        } catch { /* ignore invalid JSON */ }
       }
+      config.mcpServers = { ...(config.mcpServers as Record<string, unknown> || {}), ...mcpServers };
+      writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+      consola.success("Merged MCP servers into .continue/config.json");
     }
   },
 };

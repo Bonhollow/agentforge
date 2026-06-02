@@ -7,8 +7,12 @@ import { codexAdapter } from "../../adapters/codex.js";
 import { opencodeAdapter } from "../../adapters/opencode.js";
 import { cursorAdapter } from "../../adapters/cursor.js";
 import { windsurfAdapter } from "../../adapters/windsurf.js";
+import { continueAdapter } from "../../adapters/continue.js";
+import { piMonoAdapter } from "../../adapters/pi-mono.js";
 import type { Adapter } from "../../adapters/base.js";
-import type { UniversalSchema, SupportedTarget } from "../../core/schema.js";
+import { UniversalSchema } from "../../core/schema.js";
+import { SupportedTargets, DEFAULT_EXPOSE } from "../../core/platforms.js";
+import type { SupportedTarget } from "../../core/platforms.js";
 import { auditLog } from "../../core/audit.js";
 import { syncExposed } from "../../core/sync.js";
 
@@ -18,6 +22,8 @@ const adapters: Record<string, Adapter> = {
   opencode: opencodeAdapter,
   cursor: cursorAdapter,
   windsurf: windsurfAdapter,
+  continue_dev: continueAdapter,
+  pi_mono: piMonoAdapter,
 };
 
 function mergeSchema(target: UniversalSchema, source: UniversalSchema): void {
@@ -46,7 +52,7 @@ export default defineCommand({
   args: {
     from: {
       type: "string",
-      description: "Source platform: claude_code, codex, opencode, cursor, or auto-detect",
+      description: `Source platform: ${SupportedTargets.join(", ")}, or auto-detect`,
       default: "auto",
     },
   },
@@ -79,9 +85,14 @@ export default defineCommand({
     for (const [key, adapter] of sources) {
       consola.info(`Reading from ${adapter.name}...`);
       try {
-        const schema = adapter.read(cwd);
-        mergeSchema(merged, schema);
-        consola.success(`Imported ${schema.agents.length} agent(s), ${schema.skills.length} skill(s) from ${adapter.name}`);
+        const rawSchema = adapter.read(cwd);
+        const parsed = UniversalSchema.safeParse(rawSchema);
+        if (!parsed.success) {
+          consola.warn(`Imported data from ${adapter.name} failed validation: ${parsed.error.message}`);
+          continue;
+        }
+        mergeSchema(merged, parsed.data);
+        consola.success(`Imported ${parsed.data.agents.length} agent(s), ${parsed.data.skills.length} skill(s) from ${adapter.name}`);
       } catch (err) {
         consola.error(`Failed to import from ${adapter.name}: ${err instanceof Error ? err.message : String(err)}`);
       }

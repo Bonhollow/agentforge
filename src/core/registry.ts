@@ -1,9 +1,10 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, rmSync, cpSync, renameSync } from "node:fs";
 import { join, extname, basename } from "node:path";
 import yaml from "js-yaml";
 import matter from "gray-matter";
-import type { UniversalSchema, ExposeTarget } from "./schema.js";
+import { UniversalSchema, type ExposeTarget } from "./schema.js";
 import { consola } from "../utils/logger.js";
+import { DEFAULT_EXPOSE, PLATFORM_BADGE } from "./platforms.js";
 
 const REGISTRY_DIR = ".agentforge";
 
@@ -140,7 +141,7 @@ export function addElement(cwd: string, type: string, name: string): string {
       skills: [],
       prompts: [],
       tools: [],
-      expose: ["claude_code", "codex", "opencode", "cursor"],
+      expose: DEFAULT_EXPOSE.slice(0, 4),
     };
     writeFileSync(filePath, yaml.dump(template, { indent: 2, lineWidth: 120 }), "utf-8");
   } else {
@@ -223,7 +224,7 @@ function readDirToSchema(regDir: string): UniversalSchema {
               system_prompt: data.system_prompt as string,
               skills: (data.skills as Array<{ ref: string }>) || [],
               tools: (data.tools as Array<string | { type: string; name: string; url: string }>) || [],
-              expose: (data.expose as ExposeTarget[]) || ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"],
+              expose: (data.expose as ExposeTarget[]) || DEFAULT_EXPOSE,
               overrides: data.overrides as Record<string, { system_prompt?: string; skills?: Array<{ ref: string }>; tools?: Array<string | { type: string; name: string; url: string }>; expose?: ExposeTarget[] }> | undefined,
             });
           }
@@ -273,25 +274,56 @@ export function readRegistryFromDir(dir: string): UniversalSchema {
 }
 
 export function writeRegistry(cwd: string, schema: UniversalSchema): void {
+  const parsed = UniversalSchema.safeParse(schema);
+  if (!parsed.success) {
+    consola.error(`Registry schema validation failed: ${parsed.error.message}`);
+    return;
+  }
+  const valid = parsed.data;
   const regDir = getRegistryDir(cwd);
+  const subs = ["agents", "skills", "prompts"] as const;
 
-  for (const agent of schema.agents) {
-    const filePath = join(regDir, "agents", `${agent.name}.yaml`);
-    writeFileSync(filePath, yaml.dump(agent, { indent: 2, lineWidth: 120 }), "utf-8");
-  }
+  // Backup existing subdirs for rollback
+  const backupDir = join(regDir, `.backup_${Date.now()}`);
+  mkdirSync(backupDir, { recursive: true });
+  try {
+    for (const sub of subs) {
+      const subDir = join(regDir, sub);
+      if (existsSync(subDir)) {
+        cpSync(subDir, join(backupDir, sub), { recursive: true });
+        rmSync(subDir, { recursive: true });
+      }
+      mkdirSync(subDir, { recursive: true });
+    }
 
-  for (const skill of schema.skills) {
-    const frontmatter = { name: skill.name, version: skill.version, description: skill.description };
-    const content = `---\n${yaml.dump(frontmatter, { indent: 2, lineWidth: 120 }).trim()}\n---\n\n${skill.body}\n`;
-    const filePath = join(regDir, "skills", `${skill.name}.md`);
-    writeFileSync(filePath, content, "utf-8");
-  }
+    for (const agent of valid.agents) {
+      writeFileSync(join(regDir, "agents", `${agent.name}.yaml`), yaml.dump(agent, { indent: 2, lineWidth: 120 }), "utf-8");
+    }
 
-  for (const prompt of schema.prompts) {
-    const frontmatter = { name: prompt.name, version: prompt.version, description: prompt.description, tags: prompt.tags };
-    const content = `---\n${yaml.dump(frontmatter, { indent: 2, lineWidth: 120 }).trim()}\n---\n\n${prompt.body}\n`;
-    const filePath = join(regDir, "prompts", `${prompt.name}.md`);
-    writeFileSync(filePath, content, "utf-8");
+    for (const skill of valid.skills) {
+      const frontmatter = { name: skill.name, version: skill.version, description: skill.description };
+      const content = `---\n${yaml.dump(frontmatter, { indent: 2, lineWidth: 120 }).trim()}\n---\n\n${skill.body}\n`;
+      writeFileSync(join(regDir, "skills", `${skill.name}.md`), content, "utf-8");
+    }
+
+    for (const prompt of valid.prompts) {
+      const frontmatter = { name: prompt.name, version: prompt.version, description: prompt.description, tags: prompt.tags };
+      const content = `---\n${yaml.dump(frontmatter, { indent: 2, lineWidth: 120 }).trim()}\n---\n\n${prompt.body}\n`;
+      writeFileSync(join(regDir, "prompts", `${prompt.name}.md`), content, "utf-8");
+    }
+
+    rmSync(backupDir, { recursive: true });
+  } catch (err) {
+    consola.error(`writeRegistry failed: restoring from backup...`);
+    // Restore from backup
+    for (const sub of subs) {
+      const subDir = join(regDir, sub);
+      if (existsSync(subDir)) rmSync(subDir, { recursive: true });
+      const bakSub = join(backupDir, sub);
+      if (existsSync(bakSub)) renameSync(bakSub, subDir);
+    }
+    if (existsSync(backupDir)) rmSync(backupDir, { recursive: true });
+    throw err;
   }
 }
 
@@ -394,13 +426,7 @@ export function readRecentActivity(cwd: string, max = 3): { time: string; text: 
   }
 }
 
-const platformBadge: Record<string, string> = {
-  claude_code: "cc",
-  codex: "cx",
-  cursor: "cu",
-  opencode: "oc",
-  windsurf: "ws",
-};
+const platformBadge = PLATFORM_BADGE;
 
 export function platformBadgeShort(platform: string): string {
   return platformBadge[platform] || platform.slice(0, 2);

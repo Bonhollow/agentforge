@@ -13,7 +13,8 @@ import { opencodeAdapter } from "../adapters/opencode.js";
 import { cursorAdapter } from "../adapters/cursor.js";
 import { windsurfAdapter } from "../adapters/windsurf.js";
 import type { Adapter } from "../adapters/base.js";
-import type { SupportedTarget, UniversalSchema } from "../core/schema.js";
+import type { UniversalSchema } from "../core/schema.js";
+import { SupportedTargets, DEFAULT_EXPOSE, PLATFORM_LABELS, type SupportedTarget } from "../core/platforms.js";
 import { loadVars, resolveSchemaVars } from "../core/vars.js";
 import { readLock, writeLock, getChangedElements, updateLock } from "../core/lock.js";
 import { runHook } from "../core/hooks.js";
@@ -29,13 +30,26 @@ import type { ModelProvider, ProviderType } from "../core/models.js";
 import { listBuiltinSkills, getBuiltinSkill } from "../core/builtins.js";
 import { watch } from "node:fs";
 
+import { continueAdapter } from "../adapters/continue.js";
+import { piMonoAdapter } from "../adapters/pi-mono.js";
+
 const adapters: Record<string, Adapter> = {
   claude_code: claudeCodeAdapter,
   codex: codexAdapter,
   opencode: opencodeAdapter,
   cursor: cursorAdapter,
   windsurf: windsurfAdapter,
+  continue_dev: continueAdapter,
+  pi_mono: piMonoAdapter,
 };
+
+function platformOptions(hints?: string[]): { value: string; label: string; hint?: string }[] {
+  return (SupportedTargets as readonly string[]).map((t) => ({
+    value: t,
+    label: PLATFORM_LABELS[t],
+    ...(hints ? { hint: hints.includes(t) ? "active" : "" } : {}),
+  }));
+}
 
 function hasRegistry(): boolean {
   return existsSync(getRegistryDir(process.cwd()));
@@ -84,7 +98,7 @@ async function tuiInfo() {
   consola.log(`  Prompts: ${elements.filter(e => e.type === "prompt").length}`);
 
   consola.log(`\n ${C.bold}Platforms${C.reset}`);
-  const platforms = cfg.platforms ?? ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"];
+  const platforms = cfg.platforms ?? DEFAULT_EXPOSE;
   for (const p of platforms) consola.log(`  ${C.green}\u2713${C.reset} ${p}`);
 
   consola.log(`\n ${C.bold}Active agent${C.reset}`);
@@ -135,15 +149,7 @@ async function tuiConfig() {
     } else if (field === "platforms") {
       const picked = await p.multiselect({
         message: "Export to which platforms?",
-        options: [
-          { value: "claude_code", label: "Claude Code" },
-          { value: "codex", label: "Codex" },
-          { value: "opencode", label: "OpenCode" },
-          { value: "cursor", label: "Cursor" },
-          { value: "windsurf", label: "Windsurf" },
-          { value: "continue_dev", label: "Continue.dev" },
-          { value: "pi_mono", label: "Pi Mono" },
-        ],
+        options: platformOptions(),
         required: false,
       });
       if (p.isCancel(picked)) continue;
@@ -228,15 +234,9 @@ async function tuiAdd() {
 
     const expose = await p.multiselect({
       message: "Export to which platforms?",
-      options: [
-        { value: "claude_code", label: "Claude Code" },
-        { value: "codex", label: "Codex" },
-        { value: "opencode", label: "OpenCode" },
-        { value: "cursor", label: "Cursor" },
-        { value: "windsurf", label: "Windsurf" },
-      ],
+      options: platformOptions(),
       required: false,
-      initialValues: ["claude_code", "codex", "opencode", "cursor"],
+      initialValues: DEFAULT_EXPOSE.slice(0, 4),
     });
     if (p.isCancel(expose)) return;
     data.expose = expose;
@@ -760,13 +760,7 @@ async function tuiEdit() {
       const current = (el.data.expose as string[]) || [];
       const picked = await p.multiselect({
         message: "Export to which platforms?",
-        options: [
-          { value: "claude_code", label: "Claude Code", hint: current.includes("claude_code") ? "active" : "" },
-          { value: "codex", label: "Codex", hint: current.includes("codex") ? "active" : "" },
-          { value: "opencode", label: "OpenCode", hint: current.includes("opencode") ? "active" : "" },
-          { value: "cursor", label: "Cursor", hint: current.includes("cursor") ? "active" : "" },
-          { value: "windsurf", label: "Windsurf", hint: current.includes("windsurf") ? "active" : "" },
-        ],
+        options: platformOptions(current),
         required: false,
       });
       if (p.isCancel(picked)) continue;
@@ -1223,12 +1217,8 @@ async function tuiExport() {
   const targets = await p.multiselect({
     message: "Export to which platforms? (Space to toggle, Enter to confirm)",
     options: [
-      { value: "all", label: "All platforms", hint: "opencode, codex, claude-code, cursor, windsurf" },
-      { value: "opencode", label: "OpenCode" },
-      { value: "codex", label: "Codex" },
-      { value: "claude_code", label: "Claude Code" },
-      { value: "cursor", label: "Cursor" },
-      { value: "windsurf", label: "Windsurf" },
+      { value: "all", label: "All platforms", hint: (SupportedTargets as readonly string[]).join(", ") },
+      ...platformOptions(),
     ],
     required: true,
   });
@@ -1993,13 +1983,7 @@ async function tuiBulk() {
   } else if (operation === "expose") {
     const platforms = await p.multiselect({
       message: "Set expose platforms for all selected:",
-      options: [
-        { value: "claude_code", label: "Claude Code" },
-        { value: "codex", label: "Codex" },
-        { value: "opencode", label: "OpenCode" },
-        { value: "cursor", label: "Cursor" },
-        { value: "windsurf", label: "Windsurf" },
-      ],
+      options: platformOptions(),
       required: true,
     });
     if (p.isCancel(platforms)) return;

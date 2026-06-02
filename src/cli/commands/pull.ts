@@ -3,7 +3,7 @@ import { consola } from "../../utils/logger.js";
 import { getRegistryDir, writeRegistry, initRegistry, readRegistry } from "../../core/registry.js";
 import { existsSync } from "node:fs";
 import { pullSharedElements } from "../../sync/share.js";
-import type { UniversalSchema } from "../../core/schema.js";
+import { UniversalSchema } from "../../core/schema.js";
 
 export default defineCommand({
   meta: {
@@ -29,7 +29,13 @@ export default defineCommand({
     consola.info(`Pulling shared elements from "${from}"...`);
 
     try {
-      const schema = await pullSharedElements(from);
+      const rawSchema = await pullSharedElements(from);
+      const parsed = UniversalSchema.safeParse(rawSchema);
+      if (!parsed.success) {
+        consola.error(`Invalid pulled data: ${parsed.error.message}`);
+        return;
+      }
+      const schema = parsed.data;
       const total = schema.agents.length + schema.skills.length + schema.prompts.length;
 
       if (total === 0) {

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, cpSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, cpSync, rmSync, renameSync } from "node:fs";
 import { join, basename } from "node:path";
 import { consola } from "../utils/logger.js";
 import { getRegistryDir, readRegistry, readRegistryFromDir } from "./registry.js";
@@ -96,7 +96,24 @@ export function restoreSnapshot(cwd: string, name: string): boolean {
   }
 
   const regDir = getRegistryDir(cwd);
+  const tmpDir = join(regDir, `.restore_${Date.now()}`);
 
+  // Copy snapshot to a temp directory first — if this fails, current state is untouched
+  mkdirSync(tmpDir, { recursive: true });
+  try {
+    for (const sub of ["agents", "skills", "prompts"]) {
+      const srcSub = join(src, sub);
+      if (existsSync(srcSub)) {
+        cpSync(srcSub, join(tmpDir, sub), { recursive: true });
+      }
+    }
+  } catch (err) {
+    rmSync(tmpDir, { recursive: true });
+    consola.error(`Failed to copy snapshot: ${err instanceof Error ? err.message : String(err)}`);
+    return false;
+  }
+
+  // Now safe to delete old state
   for (const sub of ["agents", "skills", "prompts"]) {
     const subDir = join(regDir, sub);
     if (existsSync(subDir)) {
@@ -104,12 +121,18 @@ export function restoreSnapshot(cwd: string, name: string): boolean {
     }
   }
 
+  // Move temp to final location
   for (const sub of ["agents", "skills", "prompts"]) {
-    const srcSub = join(src, sub);
+    const tmpSub = join(tmpDir, sub);
     const dstSub = join(regDir, sub);
-    if (existsSync(srcSub)) {
-      cpSync(srcSub, dstSub, { recursive: true });
+    if (existsSync(tmpSub)) {
+      renameSync(tmpSub, dstSub);
     }
+  }
+
+  // Clean up temp (should be empty now, but remove if rename failed for some paths)
+  if (existsSync(tmpDir)) {
+    rmSync(tmpDir, { recursive: true });
   }
 
   const count = countElements(regDir);
