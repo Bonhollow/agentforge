@@ -32,6 +32,7 @@ import { watch } from "node:fs";
 
 import { continueAdapter } from "../adapters/continue.js";
 import { piMonoAdapter } from "../adapters/pi-mono.js";
+import { antigravityAdapter } from "../adapters/antigravity.js";
 
 const adapters: Record<string, Adapter> = {
   claude_code: claudeCodeAdapter,
@@ -41,6 +42,7 @@ const adapters: Record<string, Adapter> = {
   windsurf: windsurfAdapter,
   continue_dev: continueAdapter,
   pi_mono: piMonoAdapter,
+  antigravity: antigravityAdapter,
 };
 
 function platformOptions(hints?: string[]): { value: string; label: string; hint?: string }[] {

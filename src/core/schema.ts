@@ -3,7 +3,7 @@ import { z } from "zod";
 export const AgentType = z.enum(["agent", "skill", "prompt"]);
 export type AgentType = z.infer<typeof AgentType>;
 
-export const ExposeTarget = z.enum(["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"]);
+export const ExposeTarget = z.enum(["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono", "antigravity"]);
 export type ExposeTarget = z.infer<typeof ExposeTarget>;
 
 export const SkillRef = z.object({
@@ -41,7 +41,7 @@ export const AgentSchema = z.object({
   skills: z.array(SkillRef).default([]),
   prompts: z.array(z.string()).default([]),
   tools: z.array(ToolItem).default([]),
-  expose: z.array(ExposeTarget).default(["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"]),
+  expose: z.array(ExposeTarget).default(["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono", "antigravity"]),
   overrides: z.record(ExposeTarget, OverrideFields).optional(),
 });
 export type AgentSchema = z.infer<typeof AgentSchema>;
@@ -78,5 +78,5 @@ export const UniversalSchema = z.object({
 });
 export type UniversalSchema = z.infer<typeof UniversalSchema>;
 
-export const SupportedTargets = ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono"] as const;
+export const SupportedTargets = ["claude_code", "codex", "opencode", "cursor", "windsurf", "continue_dev", "pi_mono", "antigravity"] as const;
 export type SupportedTarget = (typeof SupportedTargets)[number];

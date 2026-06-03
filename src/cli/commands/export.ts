@@ -11,6 +11,7 @@ import { cursorAdapter } from "../../adapters/cursor.js";
 import { windsurfAdapter } from "../../adapters/windsurf.js";
 import { continueAdapter } from "../../adapters/continue.js";
 import { piMonoAdapter } from "../../adapters/pi-mono.js";
+import { antigravityAdapter } from "../../adapters/antigravity.js";
 import { loadVars, resolveSchemaVars } from "../../core/vars.js";
 import { readLock, writeLock, getChangedElements, updateLock } from "../../core/lock.js";
 import { runHook } from "../../core/hooks.js";
@@ -32,6 +33,7 @@ const adapters: Record<string, Adapter> = {
   windsurf: windsurfAdapter,
   continue_dev: continueAdapter,
   pi_mono: piMonoAdapter,
+  antigravity: antigravityAdapter,
 };
 
 import type { Adapter } from "../../adapters/base.js";

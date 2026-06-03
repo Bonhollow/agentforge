@@ -5,4 +5,5 @@ export { cursorAdapter } from "./cursor.js";
 export { windsurfAdapter } from "./windsurf.js";
 export { continueAdapter } from "./continue.js";
 export { piMonoAdapter } from "./pi-mono.js";
+export { antigravityAdapter } from "./antigravity.js";
 export type { Adapter } from "./base.js";

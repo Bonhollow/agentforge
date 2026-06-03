@@ -9,6 +9,7 @@ import { cursorAdapter } from "../../adapters/cursor.js";
 import { windsurfAdapter } from "../../adapters/windsurf.js";
 import { continueAdapter } from "../../adapters/continue.js";
 import { piMonoAdapter } from "../../adapters/pi-mono.js";
+import { antigravityAdapter } from "../../adapters/antigravity.js";
 import type { Adapter } from "../../adapters/base.js";
 import { UniversalSchema } from "../../core/schema.js";
 import { SupportedTargets, DEFAULT_EXPOSE } from "../../core/platforms.js";
@@ -24,6 +25,7 @@ const adapters: Record<string, Adapter> = {
   windsurf: windsurfAdapter,
   continue_dev: continueAdapter,
   pi_mono: piMonoAdapter,
+  antigravity: antigravityAdapter,
 };
 
 function mergeSchema(target: UniversalSchema, source: UniversalSchema): void {

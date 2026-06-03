@@ -13,6 +13,7 @@ export const PLATFORM_LIMITS: Record<string, number> = {
   windsurf: 128_000,
   continue_dev: 128_000,
   pi_mono: 128_000,
+  antigravity: 200_000,
 };
 
 export const PLATFORM_LABELS: Record<string, string> = {
@@ -23,6 +24,7 @@ export const PLATFORM_LABELS: Record<string, string> = {
   windsurf: "Windsurf",
   continue_dev: "Continue.dev",
   pi_mono: "Pi Mono",
+  antigravity: "Antigravity",
 };
 
 export const PLATFORM_BADGE: Record<string, string> = {
@@ -33,6 +35,7 @@ export const PLATFORM_BADGE: Record<string, string> = {
   windsurf: "ws",
   continue_dev: "cd",
   pi_mono: "pm",
+  antigravity: "ag",
 };
 
 export function platformLabel(target: string): string {
