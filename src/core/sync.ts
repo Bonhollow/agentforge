@@ -16,7 +16,7 @@ import { consola } from "../utils/logger.js";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Adapter } from "../adapters/base.js";
-import { DEFAULT_EXPOSE } from "./platforms.js";
+import { DEFAULT_EXPOSE, filterAgentsByExpose } from "./platforms.js";
 
 const adapters: Record<string, Adapter> = {
   claude_code: claudeCodeAdapter,
@@ -66,7 +66,7 @@ export function syncExposed(cwd: string, quiet?: boolean): void {
       if (!adapter) continue;
 
       const platformSchema = {
-        agents: filtered.agents.filter((a) => a.expose && a.expose.length > 0 && a.expose.includes(key as never)),
+        agents: filterAgentsByExpose(filtered.agents, key),
         skills: filtered.skills,
         prompts: filtered.prompts,
       };

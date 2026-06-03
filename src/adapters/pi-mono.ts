@@ -130,6 +130,16 @@ export const piMonoAdapter: Adapter = {
       if (schema.agents.length > 1) {
         consola.warn(`Pi Mono only supports a single agent. Dropped ${schema.agents.length - 1} additional agent(s).`);
       }
+    } else {
+      const agentsMdPath = join(cwd, "AGENTS.md");
+      if (existsSync(agentsMdPath)) {
+        rmSync(agentsMdPath);
+        consola.info("Removed AGENTS.md (no agents)");
+      }
+      if (existsSync(projectDir)) {
+        rmSync(projectDir, { recursive: true });
+        consola.info("Removed .pi/ (no agents)");
+      }
     }
 
     // Write skills to .pi/skills/

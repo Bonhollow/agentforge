@@ -57,6 +57,12 @@ export const claudeCodeAdapter: Adapter = {
       const primaryAgent = schema.agents[0];
       writeFileSync(join(cwd, "CLAUDE.md"), primaryAgent.system_prompt, "utf-8");
       consola.success("Wrote CLAUDE.md");
+    } else {
+      const claudePath = join(cwd, "CLAUDE.md");
+      if (existsSync(claudePath)) {
+        rmSync(claudePath);
+        consola.info("Removed CLAUDE.md (no agents)");
+      }
     }
 
     // Write skills as .claude/commands/*.md

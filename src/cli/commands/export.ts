@@ -16,7 +16,7 @@ import { readLock, writeLock, getChangedElements, updateLock } from "../../core/
 import { runHook } from "../../core/hooks.js";
 import { loadConfig, resolvePlatforms } from "../../core/config.js";
 import { checkTokenBudget } from "../../core/tokens.js";
-import { SupportedTargets, PLATFORM_LIMITS } from "../../core/platforms.js";
+import { SupportedTargets, PLATFORM_LIMITS, filterAgentsByExpose } from "../../core/platforms.js";
 import { createSnapshot } from "../../core/snapshot.js";
 import { resolveSchemaForPlatform } from "../../core/overrides.js";
 import { readMCPServers } from "../../core/mcp.js";
@@ -100,14 +100,21 @@ function doExport(cwd: string, target: string, dryRun: boolean, jsonMode: boolea
     }
 
     const { changed, unchanged } = getChangedElements(schema, key, lock);
-    if (changed.agents.length === 0 && changed.skills.length === 0 && changed.prompts.length === 0) {
+
+    const platformChanged = {
+      agents: filterAgentsByExpose(changed.agents, key),
+      skills: changed.skills,
+      prompts: changed.prompts,
+    };
+
+    if (platformChanged.agents.length === 0 && platformChanged.skills.length === 0 && platformChanged.prompts.length === 0) {
       if (jsonMode) {
         results.push({ target: key, name: adapter.name, agents: 0, skills: 0, prompts: 0, skipped: unchanged, status: "skipped" });
       }
       continue;
     }
 
-    const platformSchema = resolveSchemaForPlatform(changed, key);
+    const platformSchema = resolveSchemaForPlatform(platformChanged, key);
 
     // Resolve MCP server fields from global registry for tools missing them
     const mcpConfig = readMCPServers(cwd);
@@ -125,16 +132,16 @@ function doExport(cwd: string, target: string, dryRun: boolean, jsonMode: boolea
     }
 
     if (dryRun) {
-      const total = changed.agents.length + changed.skills.length + changed.prompts.length;
+      const total = platformChanged.agents.length + platformChanged.skills.length + platformChanged.prompts.length;
       if (jsonMode) {
-        results.push({ target: key, name: adapter.name, agents: changed.agents.length, skills: changed.skills.length, prompts: changed.prompts.length, skipped: unchanged, status: "skipped", error: "dry-run" });
+        results.push({ target: key, name: adapter.name, agents: platformChanged.agents.length, skills: platformChanged.skills.length, prompts: platformChanged.prompts.length, skipped: unchanged, status: "skipped", error: "dry-run" });
       }
     } else {
       runHook("pre_export", key, cwd);
       adapter.write(platformSchema, cwd);
       runHook("post_export", key, cwd);
-      updateLock(lock, key, changed);
-      auditLog(cwd, "export", key, `${changed.agents.length + changed.skills.length + changed.prompts.length} elements`);
+      updateLock(lock, key, { agents: filterAgentsByExpose(schema.agents, key), skills: schema.skills, prompts: schema.prompts });
+      auditLog(cwd, "export", key, `${platformSchema.agents.length + platformSchema.skills.length + platformSchema.prompts.length} elements`);
 
       if (model) {
         const cfgModel = cfg.model_versions?.[key];

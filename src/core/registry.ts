@@ -34,7 +34,7 @@ export function initRegistry(cwd: string, global?: boolean): string {
 
 export function listElements(cwd: string, type?: string) {
   const regDir = getRegistryDir(cwd);
-  const dirs = type ? [`${type}s`] : ["agents", "skills", "prompts"];
+  const dirs = type ? [`${type.replace(/s$/, "")}s`] : ["agents", "skills", "prompts"];
   const elements: Array<{ name: string; type: string; description: string; version: string }> = [];
 
   for (const dir of dirs) {
@@ -178,6 +178,7 @@ function readDirToSchema(regDir: string): UniversalSchema {
     extends?: string;
     system_prompt: string;
     skills: Array<{ ref: string }>;
+    prompts: string[];
     tools: Array<string | { type: string; name: string; url: string }>;
     expose: ExposeTarget[];
     overrides?: Record<string, { system_prompt?: string; skills?: Array<{ ref: string }>; tools?: Array<string | { type: string; name: string; url: string }>; expose?: ExposeTarget[] }>;
@@ -223,6 +224,7 @@ function readDirToSchema(regDir: string): UniversalSchema {
               extends: data.extends as string | undefined,
               system_prompt: data.system_prompt as string,
               skills: (data.skills as Array<{ ref: string }>) || [],
+              prompts: (data.prompts as string[]) || [],
               tools: (data.tools as Array<string | { type: string; name: string; url: string }>) || [],
               expose: (data.expose as ExposeTarget[]) || DEFAULT_EXPOSE,
               overrides: data.overrides as Record<string, { system_prompt?: string; skills?: Array<{ ref: string }>; tools?: Array<string | { type: string; name: string; url: string }>; expose?: ExposeTarget[] }> | undefined,
@@ -237,25 +239,66 @@ function readDirToSchema(regDir: string): UniversalSchema {
 
   const agentMap = new Map(rawAgents.map((a) => [a.name, a]));
 
-  for (const agent of rawAgents) {
-    if (agent.extends) {
+  // Multi-pass extends resolution to handle multi-level inheritance
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const agent of rawAgents) {
+      if (!agent.extends) continue;
       const parent = agentMap.get(agent.extends);
-      if (parent) {
-        agent.description = agent.description || parent.description;
+      if (!parent) continue;
+      if (agent.description !== parent.description && !agent.description) {
+        agent.description = parent.description;
+        changed = true;
+      }
+      if (agent.system_prompt !== parent.system_prompt) {
         agent.system_prompt = resolveParentRefs(agent.system_prompt, parent);
-        agent.skills = agent.skills.length > 0 ? agent.skills : parent.skills;
-        agent.tools = agent.tools.length > 0 ? agent.tools : parent.tools;
-        agent.expose = agent.expose.length > 0 ? agent.expose : parent.expose;
+        changed = true;
+      }
+      if (agent.skills.length === 0 && parent.skills.length > 0) {
+        agent.skills = parent.skills;
+        changed = true;
+      }
+      if (agent.prompts.length === 0 && parent.prompts.length > 0) {
+        agent.prompts = parent.prompts;
+        changed = true;
+      }
+      if (agent.tools.length === 0 && parent.tools.length > 0) {
+        agent.tools = parent.tools;
+        changed = true;
+      }
+      if (agent.expose.length === 0 && parent.expose.length > 0) {
+        agent.expose = parent.expose;
+        changed = true;
       }
     }
+  }
 
+  // Detect circular extends
+  for (const agent of rawAgents) {
+    if (agent.extends) {
+      const visited = new Set<string>([agent.name]);
+      let current: RawAgent | undefined = agent;
+      while (current?.extends) {
+        if (visited.has(current.extends)) {
+          consola.warn(`Circular extends detected: ${agent.name} -> ... -> ${current.extends}`);
+          break;
+        }
+        visited.add(current.extends);
+        current = agentMap.get(current.extends);
+        if (!current) break;
+      }
+    }
+  }
+
+  for (const agent of rawAgents) {
     schema.agents.push({
       name: agent.name,
       version: agent.version,
       description: agent.description,
       system_prompt: agent.system_prompt,
       skills: agent.skills,
-      prompts: [],
+      prompts: agent.prompts,
       tools: agent.tools as UniversalSchema["agents"][number]["tools"],
       expose: agent.expose,
       overrides: agent.overrides as UniversalSchema["agents"][number]["overrides"],

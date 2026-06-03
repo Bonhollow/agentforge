@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { Adapter } from "./base.js";
 import type { UniversalSchema } from "../core/schema.js";
@@ -46,7 +46,11 @@ export const codexAdapter: Adapter = {
 
   write(schema: UniversalSchema, cwd: string): void {
     if (schema.agents.length === 0) {
-      consola.warn("No agents to export (Codex requires at least one agent)");
+      const agentsPath = join(cwd, "AGENTS.md");
+      if (existsSync(agentsPath)) {
+        rmSync(agentsPath);
+        consola.info("Removed AGENTS.md (no agents)");
+      }
       return;
     }
 

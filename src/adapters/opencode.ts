@@ -155,48 +155,60 @@ export const opencodeAdapter: Adapter = {
     }
 
     // Build agent configs and collect MCP servers
-    const agentConfigs: Record<string, Record<string, unknown>> = {};
-    const mcpConfig: Record<string, Record<string, unknown>> = {};
+    if (schema.agents.length > 0) {
+      const agentConfigs: Record<string, Record<string, unknown>> = {};
+      const mcpConfig: Record<string, Record<string, unknown>> = {};
 
-    for (const agent of schema.agents) {
-      const entry: Record<string, unknown> = {
-        description: agent.description || `${agent.name} agent`,
-        mode: "primary",
-      };
-      if (agent.system_prompt) {
-        entry.prompt = agent.system_prompt;
-      }
-      agentConfigs[agent.name] = entry;
+      for (const agent of schema.agents) {
+        const entry: Record<string, unknown> = {
+          description: agent.description || `${agent.name} agent`,
+          mode: "primary",
+        };
+        if (agent.system_prompt) {
+          entry.prompt = agent.system_prompt;
+        }
+        agentConfigs[agent.name] = entry;
 
-      // Collect MCP tools attached to this agent
-      for (const tool of agent.tools) {
-        if (typeof tool !== "string" && tool.type === "mcp") {
-          const mcp = tool as Record<string, unknown>;
-          const mcpName = mcp.name as string;
-          if (!mcpConfig[mcpName]) {
-            mcpConfig[mcpName] = toOpenCodeMCP(mcp);
+        // Collect MCP tools attached to this agent
+        for (const tool of agent.tools) {
+          if (typeof tool !== "string" && tool.type === "mcp") {
+            const mcp = tool as Record<string, unknown>;
+            const mcpName = mcp.name as string;
+            if (!mcpConfig[mcpName]) {
+              mcpConfig[mcpName] = toOpenCodeMCP(mcp);
+            }
           }
         }
       }
-    }
 
-    // Write opencode.json
-    const jsonPath = findOpencodeJson(cwd) || join(cwd, "opencode.json");
-    let config: Record<string, unknown> = {};
-    if (existsSync(jsonPath)) {
-      try {
-        config = JSON.parse(readFileSync(jsonPath, "utf-8"));
-      } catch { /* will overwrite */ }
-    }
+      // Write opencode.json
+      const jsonPath = findOpencodeJson(cwd) || join(cwd, "opencode.json");
+      let config: Record<string, unknown> = {};
+      if (existsSync(jsonPath)) {
+        try {
+          config = JSON.parse(readFileSync(jsonPath, "utf-8"));
+        } catch { /* will overwrite */ }
+      }
 
-    config.agent = agentConfigs;
-    if (Object.keys(mcpConfig).length > 0) {
-      config.mcp = mcpConfig;
+      config.agent = agentConfigs;
+      if (Object.keys(mcpConfig).length > 0) {
+        config.mcp = mcpConfig;
+      } else {
+        delete config.mcp;
+      }
+
+      writeFileSync(jsonPath, JSON.stringify(config, null, 2), "utf-8");
+      consola.success(`Wrote ${jsonPath}`);
     } else {
-      delete config.mcp;
+      const jsonPath = findOpencodeJson(cwd) || join(cwd, "opencode.json");
+      if (existsSync(jsonPath)) {
+        rmSync(jsonPath);
+        consola.info("Removed opencode.json (no agents)");
+      }
+      if (existsSync(dir)) {
+        rmSync(dir, { recursive: true });
+        consola.info("Removed .opencode/agents/ (no agents)");
+      }
     }
-
-    writeFileSync(jsonPath, JSON.stringify(config, null, 2), "utf-8");
-    consola.success(`Wrote ${jsonPath}`);
   },
 };

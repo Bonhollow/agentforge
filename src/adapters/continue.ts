@@ -71,6 +71,16 @@ export const continueAdapter: Adapter = {
       }, null, 2);
       writeFileSync(join(cwd, ".continuerc.json"), rcContent, "utf-8");
       consola.success("Wrote .continuerc.json");
+    } else {
+      const rcPath = join(cwd, ".continuerc.json");
+      if (existsSync(rcPath)) {
+        rmSync(rcPath);
+        consola.info("Removed .continuerc.json (no agents)");
+      }
+      if (existsSync(projectRulesDir)) {
+        rmSync(projectRulesDir, { recursive: true });
+        consola.info("Removed .continue/rules/ (no agents)");
+      }
     }
 
     // Write skills as .continue/rules/*.md

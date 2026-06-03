@@ -57,6 +57,12 @@ export const windsurfAdapter: Adapter = {
       const primaryAgent = schema.agents[0];
       writeFileSync(join(cwd, ".windsurfrules"), primaryAgent.system_prompt, "utf-8");
       consola.success("Wrote .windsurfrules");
+    } else {
+      const rulesPath = join(cwd, ".windsurfrules");
+      if (existsSync(rulesPath)) {
+        rmSync(rulesPath);
+        consola.info("Removed .windsurfrules (no agents)");
+      }
     }
 
     // Write skills as .windsurf/rules/*.md

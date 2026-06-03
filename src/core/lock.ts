@@ -96,8 +96,7 @@ export function updateLock(
     lock.targets[target] = {};
   }
 
-  // Reset target entries to purge orphans from deleted elements
-  const entries: Record<string, LockEntry> = lock.targets[target] = {};
+  const entries = lock.targets[target];
 
   for (const agent of schema.agents) {
     entries[`agent:${agent.name}`] = { hash: computeHash(agent) };
@@ -107,5 +106,17 @@ export function updateLock(
   }
   for (const prompt of schema.prompts) {
     entries[`prompt:${prompt.name}`] = { hash: computeHash(prompt) };
+  }
+
+  // Prune entries for elements no longer in the schema
+  const expected = new Set([
+    ...schema.agents.map(a => `agent:${a.name}`),
+    ...schema.skills.map(s => `skill:${s.name}`),
+    ...schema.prompts.map(p => `prompt:${p.name}`),
+  ]);
+  for (const key of Object.keys(entries)) {
+    if (!expected.has(key)) {
+      delete entries[key];
+    }
   }
 }

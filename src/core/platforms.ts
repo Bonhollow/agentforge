@@ -46,3 +46,10 @@ export function platformBadge(target: string): string {
 export function isValidTarget(target: string): target is SupportedTarget {
   return (SupportedTargets as readonly string[]).includes(target);
 }
+
+export function filterAgentsByExpose<T extends { expose?: string[] }>(
+  agents: T[],
+  target: string,
+): T[] {
+  return agents.filter((a) => a.expose && a.expose.length > 0 && (a.expose as string[]).includes(target));
+}

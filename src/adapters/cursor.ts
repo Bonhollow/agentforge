@@ -57,6 +57,12 @@ export const cursorAdapter: Adapter = {
       const primaryAgent = schema.agents[0];
       writeFileSync(join(cwd, ".cursorrules"), primaryAgent.system_prompt, "utf-8");
       consola.success("Wrote .cursorrules");
+    } else {
+      const rulesPath = join(cwd, ".cursorrules");
+      if (existsSync(rulesPath)) {
+        rmSync(rulesPath);
+        consola.info("Removed .cursorrules (no agents)");
+      }
     }
 
     // Write skills as .cursor/rules/*.md
