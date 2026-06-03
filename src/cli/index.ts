@@ -30,6 +30,9 @@ import previewCmd from "./commands/preview.js";
 import graphCmd from "./commands/graph.js";
 import lintCmd from "./commands/lint.js";
 import bulkCmd from "./commands/bulk.js";
+import statusCmd from "./commands/status.js";
+import exportElementCmd from "./commands/export-element.js";
+import importElementCmd from "./commands/import-element.js";
 
 const subCommands = {
   init: initCmd,
@@ -60,6 +63,9 @@ const subCommands = {
   graph: graphCmd,
   lint: lintCmd,
   bulk: bulkCmd,
+  status: statusCmd,
+  "export-element": exportElementCmd,
+  "import-element": importElementCmd,
 };
 
 const main = defineCommand({

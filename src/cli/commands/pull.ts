@@ -16,20 +16,30 @@ export default defineCommand({
       description: "Owner (user or org) to pull shared elements from",
       required: true,
     },
+    element: {
+      type: "positional",
+      description: "Specific element name to pull (optional)",
+      required: false,
+    },
   },
   async run({ args }) {
     const cwd = process.cwd();
     const from = args.from as string;
+    const elementName = args.element as string | undefined;
 
     if (!existsSync(getRegistryDir(cwd))) {
       initRegistry(cwd);
       consola.info("Initialized registry.");
     }
 
-    consola.info(`Pulling shared elements from "${from}"...`);
+    if (elementName) {
+      consola.info(`Pulling shared element "${elementName}" from "${from}"...`);
+    } else {
+      consola.info(`Pulling shared elements from "${from}"...`);
+    }
 
     try {
-      const rawSchema = await pullSharedElements(from);
+      const rawSchema = await pullSharedElements(from, elementName);
       const parsed = UniversalSchema.safeParse(rawSchema);
       if (!parsed.success) {
         consola.error(`Invalid pulled data: ${parsed.error.message}`);
@@ -39,7 +49,11 @@ export default defineCommand({
       const total = schema.agents.length + schema.skills.length + schema.prompts.length;
 
       if (total === 0) {
-        consola.warn(`No shared elements found for "${from}".`);
+        if (elementName) {
+          consola.warn(`Shared element "${elementName}" not found for "${from}".`);
+        } else {
+          consola.warn(`No shared elements found for "${from}".`);
+        }
         return;
       }
 
@@ -47,7 +61,11 @@ export default defineCommand({
       const merged = mergeInto(existing, schema);
       writeRegistry(cwd, merged);
 
-      consola.success(`Pulled ${total} shared element(s) from "${from}".`);
+      if (elementName) {
+        consola.success(`Pulled shared element "${elementName}" from "${from}".`);
+      } else {
+        consola.success(`Pulled ${total} shared element(s) from "${from}".`);
+      }
     } catch (err) {
       consola.error(`Pull failed: ${err instanceof Error ? err.message : String(err)}`);
     }

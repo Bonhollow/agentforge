@@ -30,12 +30,18 @@ export async function pushSharedElement(
   if (error) throw new Error(`Failed to share element: ${error.message}`);
 }
 
-export async function pullSharedElements(owner: string): Promise<UniversalSchema> {
+export async function pullSharedElements(owner: string, elementName?: string): Promise<UniversalSchema> {
   const supabase = getShareClient();
 
-  const { data: elements, error } = await (supabase.from("shared_elements") as any)
+  let query = (supabase.from("shared_elements") as any)
     .select("*")
     .eq("owner", owner);
+
+  if (elementName) {
+    query = query.eq("name", elementName);
+  }
+
+  const { data: elements, error } = await query;
 
   if (error) throw new Error(`Failed to pull shared elements: ${error.message}`);
 

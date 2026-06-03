@@ -111,13 +111,24 @@ export const antigravityAdapter: Adapter = {
       }
     }
 
-    // Write prompts as .agent/prompts/*.md
+    // Clean stale prompt files
     const promptsDir = join(cwd, ".agent", "prompts");
     if (schema.prompts.length > 0) {
       mkdirSync(promptsDir, { recursive: true });
       for (const prompt of schema.prompts) {
         writeFileSync(join(promptsDir, `${prompt.name}.md`), prompt.body, "utf-8");
         consola.success(`Wrote .agent/prompts/${prompt.name}.md`);
+      }
+    }
+    if (existsSync(promptsDir)) {
+      const promptNames = new Set(schema.prompts.map(p => p.name));
+      for (const file of readdirSync(promptsDir)) {
+        if (!file.endsWith(".md")) continue;
+        const name = file.replace(/\.md$/, "");
+        if (!promptNames.has(name)) {
+          rmSync(join(promptsDir, file));
+          consola.info(`Removed stale .agent/prompts/${file}`);
+        }
       }
     }
 
@@ -141,6 +152,12 @@ export const antigravityAdapter: Adapter = {
       mkdirSync(agentDir, { recursive: true });
       writeFileSync(join(agentDir, "mcp.json"), JSON.stringify({ mcpServers }, null, 2), "utf-8");
       consola.success("Wrote .agent/mcp.json");
+    } else {
+      const mcpPath = join(cwd, ".agent", "mcp.json");
+      if (existsSync(mcpPath)) {
+        rmSync(mcpPath);
+        consola.info("Removed .agent/mcp.json (no MCP servers)");
+      }
     }
 
     // Clean up .agent/ if no agents left and directory is empty

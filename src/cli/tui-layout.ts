@@ -53,6 +53,8 @@ const CATEGORIES: Record<string, Category> = {
       { value: "show", label: "Show", shortcut: "s", help: "Display the full YAML content of an agent." },
       { value: "edit", label: "Edit", shortcut: "e", help: "Modify an agent's fields: description, version, system_prompt, tools, skills, and expose platforms." },
       { value: "remove", label: "Remove", shortcut: "r", help: "Delete an agent from the local registry." },
+      { value: "export_agent", label: "Export agent", shortcut: "x", help: "Export this specific agent to platform-native formats." },
+      { value: "share_agent", label: "Share agent", shortcut: "h", help: "Publish this specific agent to the community registry." },
       { value: "bulk", label: "Bulk: Rename / Retag / Expose", shortcut: "u", help: "Modify multiple elements at once." },
     ],
   },
@@ -75,6 +77,7 @@ const CATEGORIES: Record<string, Category> = {
       { value: "add_skill", label: "Add skill", shortcut: "a", help: "Create a new skill (markdown file with frontmatter)." },
       { value: "edit", label: "Edit skill", shortcut: "e", help: "Modify a skill's body content or metadata." },
       { value: "remove", label: "Remove skill", shortcut: "r", help: "Delete a skill from the registry." },
+      { value: "share_skill", label: "Share skill", shortcut: "h", help: "Publish this specific skill to the community registry." },
       { value: "skill_link", label: "Link to Agent", shortcut: "k", help: "Select an agent and choose which skills to attach." },
     ],
   },
@@ -86,16 +89,9 @@ const CATEGORIES: Record<string, Category> = {
       { value: "add_prompt", label: "Add prompt", shortcut: "a", help: "Create a new prompt (markdown file with frontmatter)." },
       { value: "edit", label: "Edit prompt", shortcut: "e", help: "Modify a prompt's body content or metadata." },
       { value: "remove", label: "Remove prompt", shortcut: "r", help: "Delete a prompt from the registry." },
+      { value: "share_prompt", label: "Share prompt", shortcut: "h", help: "Publish this specific prompt to the community registry." },
       { value: "prompt_link", label: "Link to Agent", shortcut: "k", help: "Select an agent and choose which prompts to attach." },
       { value: "variables", label: "Variables", shortcut: "v", help: "Manage variables (key=value) used in prompt templates." },
-    ],
-  },
-  platform: {
-    label: "Platform", shortcut: "l",
-    description: "Export agents, skills, and prompts to supported coding platforms, or import existing configurations.",
-    items: [
-      { value: "export", label: "Export", shortcut: "e", help: "Resolve variables and overrides, then write platform-native configs." },
-      { value: "import", label: "Import", shortcut: "i", help: "Detect and read platform configs from the current directory, merge into the local registry." },
     ],
   },
   models: {
@@ -135,14 +131,18 @@ const CATEGORIES: Record<string, Category> = {
       { value: "audit", label: "Audit log", shortcut: "a", help: "Browse the audit log." },
     ],
   },
-  account: {
-    label: "Account", shortcut: "u",
-    description: "Authenticate, sync your registry to the cloud, and share or pull elements with other users.",
+  sync_export: {
+    label: "Sync & Export", shortcut: "x",
+    description: "Sync your registry to the cloud, share elements, and export/import to platform-native formats.",
     items: [
       { value: "auth", label: "Authentication", shortcut: "u", help: "Login, logout, or check auth status with Supabase." },
-      { value: "sync", label: "Sync", shortcut: "s", help: "Push local registry to Supabase or pull remote registry into local." },
-      { value: "share", label: "Share", shortcut: "h", help: "Push elements to remote for other users." },
-      { value: "pull", label: "Pull", shortcut: "p", help: "Fetch shared elements from remote." },
+      { value: "sync", label: "Sync Cloud", shortcut: "s", help: "Push local registry to Supabase or pull remote registry into local." },
+      { value: "share", label: "Share Element", shortcut: "h", help: "Push elements to remote for other users." },
+      { value: "pull", label: "Pull Shared", shortcut: "p", help: "Fetch shared elements from remote." },
+      { value: "export", label: "Export Platform", shortcut: "e", help: "Resolve variables and overrides, then write platform-native configs." },
+      { value: "import", label: "Import Platform", shortcut: "i", help: "Detect and read platform configs from the current directory, merge into the local registry." },
+      { value: "share_text_export", label: "Share via text / file (Export)", shortcut: "t", help: "Export an element to a JSON/YAML file or text to copy." },
+      { value: "share_text_import", label: "Share via text / file (Import)", shortcut: "y", help: "Import an element by pasting JSON/YAML or reading from a file." },
     ],
   },
 };
@@ -230,7 +230,7 @@ export async function runTwoColumnTui(cwd: string, initialView?: View, initialCa
   ];
   let typeFilterIdx = 0;
 
-  const categoryShortcuts: Record<string, number> = { e: 0, m: 1, s: 2, p: 3, l: 4, o: 5, i: 6, h: 7, u: 8 };
+  const categoryShortcuts: Record<string, number> = { e: 0, m: 1, s: 2, p: 3, o: 4, i: 5, h: 6, x: 7 };
 
   let activity: { time: string; text: string }[] = [];
   let agentsWithExpose: { name: string; expose: string[]; skills: string[] }[] = [];
@@ -287,11 +287,10 @@ export async function runTwoColumnTui(cwd: string, initialView?: View, initialCa
       { key: "M", label: "MCP" },
       { key: "S", label: "Skills" },
       { key: "P", label: "Prompts" },
-      { key: "L", label: "Platform" },
       { key: "O", label: "Models" },
       { key: "I", label: "Inspect" },
       { key: "H", label: "History" },
-      { key: "U", label: "Account" },
+      { key: "X", label: "Sync & Export" },
     ];
 
     for (let i = 0; i < sidebarLabels.length; i++) {
@@ -563,6 +562,10 @@ export async function runTwoColumnTui(cwd: string, initialView?: View, initialCa
       const truncated = line.length > previewW - 3 ? line.slice(0, previewW - 6) + "..." : line;
       process.stdout.write(`${pos(r, previewCol)}  ${C.dim}${truncated.padEnd(previewW - 3)}${C.reset}`);
     }
+    // Hotkey helper footer line
+    const helpRow = height - 1;
+    const footerHelp = `[Arrows] Navigate  [Enter] Show  [E] Edit  [X] Export  [H] Share  [D] Diff  [F] Fork  [R] Remove  [Q/Esc] Back`;
+    process.stdout.write(`${pos(helpRow, col)}${C.dim}${footerHelp.slice(0, mainW)}${C.reset}`);
   }
 
   // --- Popup overlays ---
@@ -661,6 +664,21 @@ export async function runTwoColumnTui(cwd: string, initialView?: View, initialCa
           if (sel) commitAction(`show:${sel.name}`);
           return;
         }
+        const sel = browseElementsList[browseState.elementIdx];
+        if (sel) {
+          const lowerKey = key.toLowerCase();
+          if (lowerKey === "e") { commitAction(`edit:${sel.name}`); return; }
+          if (lowerKey === "x") {
+            if (sel.type === "agent") {
+              commitAction(`export:${sel.name}`);
+            }
+            return;
+          }
+          if (lowerKey === "h" || lowerKey === "s") { commitAction(`share:${sel.name}`); return; }
+          if (lowerKey === "d") { commitAction(`diff:${sel.name}`); return; }
+          if (lowerKey === "f") { commitAction(`fork:${sel.name}`); return; }
+          if (lowerKey === "r") { commitAction(`remove:${sel.name}`); return; }
+        }
         return;
       }
 
@@ -714,7 +732,7 @@ export async function runTwoColumnTui(cwd: string, initialView?: View, initialCa
           const item = cat?.items?.[actIdx];
           if (item?.help) { popup = { type: "help", text: item.help }; draw(); }
         } else {
-          popup = { type: "help", text: "Dashboard shows your local registry stats.\n[D] Dashboard  [E] Agents  [M] MCP  [S] Skills\n[P] Prompts  [L] Platform  [O] Models  [I] Inspect\n[H] History  [U] Account\n[C] Config  [R] Refresh  [/] Search  [?] Help" };
+          popup = { type: "help", text: "Dashboard shows your local registry stats.\n[D] Dashboard  [E] Agents  [M] MCP  [S] Skills\n[P] Prompts  [O] Models  [I] Inspect  [H] History\n[X] Sync & Export\n[C] Config  [R] Refresh  [/] Search  [?] Help" };
           draw();
         }
         return;

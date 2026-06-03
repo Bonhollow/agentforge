@@ -1,7 +1,8 @@
 import * as p from "@clack/prompts";
 import { consola } from "../utils/logger.js";
 import { existsSync, readdirSync, writeFileSync, readFileSync } from "node:fs";
-import { initRegistry, listElements, readElement, removeElement, addElement, readRegistry, writeRegistry, findReferences } from "../core/registry.js";
+import { spawnSync } from "node:child_process";
+import { initRegistry, listElements, readElement, removeElement, addElement, saveElement, readRegistry, writeRegistry, findReferences } from "../core/registry.js";
 import { getRegistryDir } from "../core/registry.js";
 import { validateElement } from "../core/validate.js";
 import { diffSchemas, formatDiff } from "../core/diff.js";
@@ -13,7 +14,7 @@ import { opencodeAdapter } from "../adapters/opencode.js";
 import { cursorAdapter } from "../adapters/cursor.js";
 import { windsurfAdapter } from "../adapters/windsurf.js";
 import type { Adapter } from "../adapters/base.js";
-import type { UniversalSchema } from "../core/schema.js";
+import { UniversalSchema, RegistryElement } from "../core/schema.js";
 import { SupportedTargets, DEFAULT_EXPOSE, PLATFORM_LABELS, type SupportedTarget } from "../core/platforms.js";
 import { loadVars, resolveSchemaVars } from "../core/vars.js";
 import { readLock, writeLock, getChangedElements, updateLock } from "../core/lock.js";
@@ -189,8 +190,8 @@ async function tuiConfig() {
   }
 }
 
-async function tuiAdd() {
-  const type = await p.select({
+async function tuiAdd(preferredType?: string) {
+  const type = preferredType || await p.select({
     message: "Element type:",
     options: [
       { value: "agent", label: "Agent" },
@@ -687,13 +688,13 @@ async function tuiShow() {
   }
 }
 
-async function tuiEdit() {
+async function tuiEdit(preselectedName?: string) {
   if (!hasRegistry()) {
     consola.error("No registry found. Run `af init` first.");
     return;
   }
   const cwd = process.cwd();
-  const name = await pickElement(cwd);
+  const name = preselectedName ?? await pickElement(cwd);
   if (!name) return;
 
   const el = readElement(cwd, name);
@@ -1149,13 +1150,13 @@ async function tuiRollback() {
   else consola.error(`Failed to restore snapshot "${selected}".`);
 }
 
-async function tuiRemove() {
+async function tuiRemove(preselectedName?: string) {
   if (!hasRegistry()) {
     consola.error("No registry found. Run `af init` first.");
     return;
   }
   const cwd = process.cwd();
-  const name = await pickElement(cwd);
+  const name = preselectedName ?? await pickElement(cwd);
   if (!name) return;
 
   const el = readElement(cwd, name);
@@ -1199,7 +1200,7 @@ async function tuiRemove() {
   syncExposed(process.cwd(), true);
 }
 
-async function tuiExport() {
+async function tuiExport(preselectedAgent?: string) {
   if (!hasRegistry()) {
     consola.error("No registry found. Run `af init` first.");
     return;
@@ -1226,17 +1227,52 @@ async function tuiExport() {
   });
   if (p.isCancel(targets)) return;
 
-  const exportAll = await p.confirm({
-    message: "Export everything in the registry?",
-    initialValue: true,
-  });
-  if (p.isCancel(exportAll)) return;
-
   let finalSchema: UniversalSchema;
 
-  if (exportAll) {
-    finalSchema = schema;
+  if (preselectedAgent) {
+    const aObj = schema.agents.find(a => a.name === preselectedAgent);
+    if (!aObj) {
+      consola.error(`Agent "${preselectedAgent}" not found.`);
+      return;
+    }
+    const includeSkills = await p.confirm({
+      message: `Include agent "${preselectedAgent}"'s linked skills?`,
+      initialValue: true,
+    });
+    if (p.isCancel(includeSkills)) return;
+
+    const includeTools = await p.confirm({
+      message: `Include agent "${preselectedAgent}"'s tool lists?`,
+      initialValue: true,
+    });
+    if (p.isCancel(includeTools)) return;
+
+    const linkedSkillRefs = new Set<string>();
+    if (includeSkills) {
+      for (const sr of aObj.skills) {
+        linkedSkillRefs.add(sr.ref);
+      }
+    }
+
+    finalSchema = {
+      agents: [{
+        ...aObj,
+        skills: includeSkills ? aObj.skills : [],
+        tools: includeTools ? aObj.tools : [],
+      }],
+      skills: schema.skills.filter((s) => linkedSkillRefs.has(s.name)),
+      prompts: [],
+    };
   } else {
+    const exportAll = await p.confirm({
+      message: "Export everything in the registry?",
+      initialValue: true,
+    });
+    if (p.isCancel(exportAll)) return;
+
+    if (exportAll) {
+      finalSchema = schema;
+    } else {
     const sel: { agents: string[]; skills: string[]; prompts: string[] } = {
       agents: [],
       skills: [],
@@ -1329,6 +1365,7 @@ async function tuiExport() {
       finalSchema.prompts = schema.prompts.filter((pr) => (picked as string[]).includes(pr.name));
     }
   }
+}
 
   const totalAgents = finalSchema.agents.length;
   const totalSkills = finalSchema.skills.length;
@@ -1669,9 +1706,9 @@ async function tuiBench() {
   (benchCmd as any)?.run?.({ args: { name, provider: "openai", model: undefined } });
 }
 
-async function tuiFork() {
+async function tuiFork(preselectedName?: string) {
   const cwd = process.cwd();
-  const name = await pickElement(cwd);
+  const name = preselectedName ?? await pickElement(cwd);
   if (!name) return;
   const newName = await p.text({ message: "New element name:", placeholder: `${name}-copy` });
   if (p.isCancel(newName)) return;
@@ -1703,9 +1740,9 @@ async function tuiWhy() {
   (whyCmd as any)?.run?.({ args: { name } });
 }
 
-async function tuiShare() {
+async function tuiShare(preselectedName?: string, preselectedType?: string) {
   const cwd = process.cwd();
-  const name = await pickElement(cwd);
+  const name = preselectedName ?? await pickElement(cwd, preselectedType);
   if (!name) return;
   const el = readElement(cwd, name);
   if (!el) { consola.error(`Element "${name}" not found.`); return; }
@@ -1719,6 +1756,164 @@ async function tuiShare() {
   } catch (err) {
     consola.error(`Share failed: ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+async function tuiShareTextExport() {
+  const cwd = process.cwd();
+  const type = await p.select({
+    message: "Element type to export:",
+    options: [
+      { value: "agent", label: "Agent" },
+      { value: "skill", label: "Skill" },
+      { value: "prompt", label: "Prompt" },
+    ],
+  });
+  if (p.isCancel(type)) return;
+  const name = await pickElement(cwd, type as string);
+  if (!name) return;
+  const el = readElement(cwd, name);
+  if (!el) { consola.error(`Element "${name}" not found.`); return; }
+
+  const fmt = await p.select({
+    message: "Output format:",
+    options: [
+      { value: "yaml", label: "YAML" },
+      { value: "json", label: "JSON" },
+    ],
+  });
+  if (p.isCancel(fmt)) return;
+
+  const output = { type: el.type, data: el.body ? { ...el.data, body: el.body } : el.data };
+  const serialized = fmt === "json" ? JSON.stringify(output, null, 2) : yaml.dump(output, { indent: 2, lineWidth: 120 });
+
+  const dest = await p.select({
+    message: "Output to:",
+    options: [
+      { value: "terminal", label: "Display in terminal (for copying)" },
+      { value: "file", label: "Write to file" },
+    ],
+  });
+  if (p.isCancel(dest)) return;
+
+  if (dest === "terminal") {
+    consola.log(serialized);
+    copyToClipboard(serialized);
+    consola.success("Copied to clipboard");
+  } else {
+    const filePath = await p.text({
+      message: "File path:",
+      initialValue: `${name}.${fmt}`,
+      validate: (v) => (v && v.trim().length > 0 ? undefined : "Path cannot be empty"),
+    });
+    if (p.isCancel(filePath)) return;
+    writeFileSync(filePath as string, serialized, "utf-8");
+    copyToClipboard(serialized);
+    consola.success(`Exported "${name}" to ${filePath} and copied to clipboard`);
+  }
+}
+
+function copyToClipboard(text: string): void {
+  const platform = process.platform;
+  const cmd = platform === "darwin" ? "pbcopy"
+    : platform === "win32" ? "clip"
+    : "xclip";
+  const args = platform === "linux" ? ["-selection", "clipboard"] : [];
+  try {
+    spawnSync(cmd, args, { input: text, encoding: "utf-8" });
+  } catch {
+    // clipboard not available, silently ignore
+  }
+}
+
+async function tuiShareTextImport() {
+  const cwd = process.cwd();
+  const source = await p.select({
+    message: "Import from:",
+    options: [
+      { value: "paste", label: "Paste text" },
+      { value: "file", label: "Read from file" },
+    ],
+  });
+  if (p.isCancel(source)) return;
+
+  let raw: string;
+  if (source === "file") {
+    const filePath = await p.text({
+      message: "File path:",
+      validate: (v) => (v && v.trim().length > 0 ? undefined : "Path cannot be empty"),
+    });
+    if (p.isCancel(filePath)) return;
+    if (!existsSync(filePath as string)) { consola.error("File not found."); return; }
+    raw = readFileSync(filePath as string, "utf-8");
+  } else {
+    const text = await p.text({
+      message: "Paste JSON or YAML:",
+      validate: (v) => (v && v.trim().length > 0 ? undefined : "Content cannot be empty"),
+    });
+    if (p.isCancel(text)) return;
+    raw = text as string;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = yaml.load(raw);
+  } catch {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      consola.error("Could not parse input as YAML or JSON.");
+      return;
+    }
+  }
+
+  const result = RegistryElement.safeParse(parsed);
+  if (!result.success) {
+    consola.error(`Invalid element data: ${result.error.message}`);
+    return;
+  }
+
+  const { type, data } = result.data;
+  const filePath = saveElement(cwd, type, data.name, data);
+  consola.success(`Imported ${type} "${data.name}" -> ${filePath}`);
+  syncExposed(cwd, true);
+}
+
+async function tuiDiffElement(name: string) {
+  if (!hasRegistry()) {
+    consola.error("No registry found. Run `af init` first.");
+    return;
+  }
+  const cwd = process.cwd();
+  const localEl = readElement(cwd, name);
+  if (!localEl) {
+    consola.error(`Local element "${name}" not found.`);
+    return;
+  }
+
+  const { readRemoteRegistry } = await import("../sync/pull.js");
+  const remote = await readRemoteRegistry();
+  if (!remote) {
+    consola.warn("Remote registry not available/accessible.");
+    return;
+  }
+
+  let remoteEl: any = null;
+  if (localEl.type === "agent") {
+    remoteEl = remote.agents.find((a: any) => a.name === name);
+  } else if (localEl.type === "skill") {
+    remoteEl = remote.skills.find((s: any) => s.name === name);
+  } else if (localEl.type === "prompt") {
+    remoteEl = remote.prompts.find((p: any) => p.name === name);
+  }
+
+  const localStr = yaml.dump(localEl.data, { indent: 2 }) + (localEl.body ? `\n--- Body ---\n${localEl.body}` : "");
+  const remoteStr = remoteEl ? (yaml.dump(remoteEl, { indent: 2 }) + (remoteEl.body ? `\n--- Body ---\n${remoteEl.body}` : "")) : "";
+
+  const { diffLines } = await import("diff");
+  const changes = diffLines(localStr, remoteStr);
+  const diffResult = { changes, hasChanges: changes.some((c) => c.added || c.removed) };
+  consola.log(`Diff for ${localEl.type} "${name}" (- local / + remote):`);
+  consola.log(formatDiff(diffResult));
 }
 
 async function tuiPull() {
@@ -2051,13 +2246,45 @@ async function handleAction(action: string, catIdx?: number): Promise<void> {
     if (el.body) { consola.log("--- Body ---"); consola.log(el.body); }
     return;
   }
+  if (action.startsWith("edit:")) {
+    const name = action.slice(5);
+    await tuiEdit(name);
+    return;
+  }
+  if (action.startsWith("export:")) {
+    const name = action.slice(7);
+    await tuiExport(name);
+    return;
+  }
+  if (action.startsWith("share:")) {
+    const name = action.slice(6);
+    await tuiShare(name);
+    return;
+  }
+  if (action.startsWith("diff:")) {
+    const name = action.slice(5);
+    await tuiDiffElement(name);
+    return;
+  }
+  if (action.startsWith("fork:")) {
+    const name = action.slice(5);
+    await tuiFork(name);
+    return;
+  }
+  if (action.startsWith("remove:")) {
+    const name = action.slice(7);
+    await tuiRemove(name);
+    return;
+  }
   // Infer element type from category index
+  // Category keys: ["agents", "mcp", "skills", "prompts", "models", "inspect", "history", "sync_export"]
+  // Index 0: agent, Index 2: skill, Index 3: prompt
   const catType = catIdx !== undefined ? (["agent", undefined, "skill", "prompt"] as const)[catIdx] : undefined;
   const effectiveType = catType === undefined ? undefined : catType;
   switch (action) {
     case "info": await tuiInfo(); break;
     case "config": await tuiConfig(); break;
-    case "add": await tuiAdd(); break;
+    case "add": await tuiAdd(effectiveType); break;
     case "add_skill": await tuiAddSkill(); break;
     case "add_prompt": await tuiAddPrompt(); break;
     case "list": await tuiList(effectiveType); break;
@@ -2065,6 +2292,28 @@ async function handleAction(action: string, catIdx?: number): Promise<void> {
     case "edit": await tuiEdit(); break;
     case "remove": await tuiRemove(); break;
     case "fork": await tuiFork(); break;
+    case "export_agent": {
+      const name = await pickElement(process.cwd(), "agent");
+      if (name) await tuiExport(name);
+      break;
+    }
+    case "share_agent": {
+      const name = await pickElement(process.cwd(), "agent");
+      if (name) await tuiShare(name);
+      break;
+    }
+    case "share_text_export": await tuiShareTextExport(); break;
+    case "share_text_import": await tuiShareTextImport(); break;
+    case "share_skill": {
+      const name = await pickElement(process.cwd(), "skill");
+      if (name) await tuiShare(name);
+      break;
+    }
+    case "share_prompt": {
+      const name = await pickElement(process.cwd(), "prompt");
+      if (name) await tuiShare(name);
+      break;
+    }
     case "why": await tuiWhy(); break;
     case "test": await tuiTest(); break;
     case "bench": await tuiBench(); break;

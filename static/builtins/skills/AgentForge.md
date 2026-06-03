@@ -63,6 +63,8 @@ All data lives under `.agentforge/` in the project root:
 | `af version` | Show version |
 | `af upgrade` | Check for updates |
 | `af bulk <op>` | Bulk rename/retag/expose/version |
+| `af export-element <name> [file] [--format json|yaml]` | Export a single element as JSON/YAML to stdout or file |
+| `af import-element [file] [--paste]` | Import a single element from file or stdin |
 | `af lsp` | Start LSP server |
 
 ## TUI Keyboard Navigation
@@ -74,6 +76,7 @@ All data lives under `.agentforge/` in the project root:
 | `S` | Skills — create, edit, link |
 | `P` | Prompts — create, edit, link, variables |
 | `L` | Platform — export, import |
+| `X` | Sync & Export — auth, sync, share, pull, text export/import |
 | `O` | Models — register providers, detect, test |
 | `I` | Inspect — validate, preview, test, bench, search, graph, lint |
 | `H` | History — snapshot, diff, rollback, audit |
@@ -180,6 +183,34 @@ Supported platforms and their config files:
 | Windsurf | .windsurfrules | .windsurf/rules/*.md |
 | OpenCode | opencode.json | .opencode/agents/*.md |
 | Codex | AGENTS.md | (none) |
+| Antigravity | AGENT.md | .agent/rules/*.md |
+
+## Individual Element Export/Import
+
+Export or import a single agent, skill, or prompt as JSON/YAML for sharing via copy-paste or file.
+
+**CLI:**
+```
+af export-element my-agent --format json
+af export-element my-agent --format yaml > my-agent.yaml
+af import-element my-agent.yaml
+echo '{ "type": "agent", "data": { ... } }' | af import-element --paste
+```
+
+**TUI:** Open `Sync & Export (X)` and use:
+- `t` — Share via text/file (Export): pick element type, pick element, choose format, then display or write to file (auto-copies to clipboard)
+- `y` — Share via text/file (Import): paste JSON/YAML or read from file
+
+Serialized format:
+```yaml
+type: agent           # agent | skill | prompt
+data:                 # element fields matching the schema
+  name: my-agent
+  version: 1.0.0
+  description: ...
+  system_prompt: ...
+  # ... type-specific fields
+```
 
 ## Model Providers
 

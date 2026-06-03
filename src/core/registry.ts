@@ -158,6 +158,25 @@ export function addElement(cwd: string, type: string, name: string): string {
   return filePath;
 }
 
+export function saveElement(cwd: string, type: "agent" | "skill" | "prompt", name: string, data: any): string {
+  const regDir = getRegistryDir(cwd);
+  const typeDir = `${type}s`;
+  const ext = type === "agent" ? "yaml" : "md";
+  const filePath = join(regDir, typeDir, `${name}.${ext}`);
+
+  // Ensure directories exist
+  mkdirSync(join(regDir, typeDir), { recursive: true });
+
+  if (type === "agent") {
+    writeFileSync(filePath, yaml.dump(data, { indent: 2, lineWidth: 120 }), "utf-8");
+  } else {
+    const { body, ...fm } = data;
+    const content = `---\n${yaml.dump(fm, { indent: 2, lineWidth: 120 }).trim()}\n---\n\n${body || ""}\n`;
+    writeFileSync(filePath, content, "utf-8");
+  }
+  return filePath;
+}
+
 function resolveParentRefs(input: string, parent: { system_prompt: string; description: string }): string {
   return input.replace(/\{\{parent\.(\w+)\}\}/g, (_, field) => {
     if (field === "system_prompt") return parent.system_prompt;
